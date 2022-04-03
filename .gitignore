@@ -1,0 +1,8 @@
+__pycache__/
+dataset.csv
+*.pdf
+
+
+*.pyc
+*.pyo
+.DS_Store

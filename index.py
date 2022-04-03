@@ -42,10 +42,9 @@ def build_index(in_dir, out_dict, out_postings):
     fileID = 0
     stageOfMerge = 0
     count = 0
-    tokenStream = []
+    tokenStreamBatch = []
     docLengths = {} # {docID : length, docID2 : length, ...}, to be added dumped into the postings file with its pointer stored in the final termDictionary file
 
-    tempDict = {}
     with open(input_directory, newline='', encoding='UTF-8') as f:
         reader = csv.reader(f)
 
@@ -55,8 +54,8 @@ def build_index(in_dir, out_dict, out_postings):
 
             docID, title, content, date, court = col
             tokenStream = generateProcessedTokenStream(content, docID)
-            tempDict[docID] = [title, tokenStream]
             docLengths[docID] = len(tokenStream)
+            tokenStreamBatch.append(tokenStream)
             count+=1
 
             if count == limit: # no. of docs == limit
@@ -102,10 +101,11 @@ def generateProcessedTokenStream(content, docID):
     # print(tokenNoPunctuations)
     tokensNoStopWords = [token for token in processedTokens_1 if token.lower() not in stopwords.words('english')] # remove all occurrences of stopwords
     # print(tokensNoStopWords)
-    docLength = len(tokensNoStopWords)
 
     for word in tokensNoStopWords:
-        if word in countOfTerms:
+        stemmedWord = stemmer.stem(word.lower())
+
+        if stemmedWord in countOfTerms:
             countOfTerms[word] += 1
         
         else:
@@ -116,7 +116,8 @@ def generateProcessedTokenStream(content, docID):
 
     output = [(term, docID, weight,lengthOfDocVector) for term, weight in weightOfTerms.items()] # all terms in a particular document, and its associated term weight, and length of vector
 
-    return (output, docLength)  # returns a tuple: (a list of processed terms in the form of  [(term1, docID, weight, docVectorLength), (term2, docID, docVectorLength), ...], length of document)
+    return output  # returns a list of processed terms in the form of [(term1, docID, weight, docVectorLength), (term2, docID, docVectorLength), ...]
+
 
 def isNumber(token):
     if regex.match(r'[0-9]+[^0-9][0-9]+', token):
@@ -124,46 +125,12 @@ def isNumber(token):
 
     return False
 
+
 def isNotPunctuation(token):
     if token in string.punctuation:
         return False
     
     return True
-
-
-def generateTokenStreamWithVectorLength(dir, docID):
-    """
-    Given a document and the directory, return a tuple of 2 items: first is a list of (term, docID, weight, lengthofDocVector).
-    Second is the length of the document. 
-    We apply case-folding + stemming to all tokens encountered.
-    Weight of a term simply 1 + log10(termFrequency), with no idf component.
-    """
-    stemmer = nltk.stem.porter.PorterStemmer()
-
-    length = 0
-    countOfTerms = {} # will be in the form of {term1 : count, term2 : count, ...}
-
-    with open(os.path.join(dir, str(docID))) as file:
-        sentences = nltk.tokenize.sent_tokenize(file.read())
-        for sentence in sentences:
-            words = nltk.tokenize.word_tokenize(sentence)
-            for word in words:
-                length+=1
-                stemmedWord = stemmer.stem(word.lower()) # stemming + case-folding
-
-                if stemmedWord in countOfTerms:
-                    countOfTerms[stemmedWord] += 1
-
-                else:
-                    countOfTerms[stemmedWord] = 1
-
-    weightOfTerms = {term : 1 + math.log10(value) for term, value in countOfTerms.items()} # no idf
-    lengthOfDocVector = math.sqrt(sum([count**2 for count in weightOfTerms.values()]))
-
-    output = [(term, docID, weight,lengthOfDocVector) for term, weight in weightOfTerms.items()] # all terms in a particular document, and its associated term weight, and length of vector
-                
-
-    return (output, length)  # returns a tuple: (a list of processed terms in the form of  [(term1, docID, weight, docVectorLength), (term2, docID, docVectorLength), ...], length of document)
 
 
 def convertToPostingNodes(out_postings, file, termDictionary):
@@ -210,4 +177,5 @@ if input_directory == None or output_file_postings == None or output_file_dictio
     usage()
     sys.exit(2)
 
+nltk.download('stopwords')
 build_index(input_directory, output_file_dictionary, output_file_postings)

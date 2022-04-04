@@ -10,6 +10,8 @@ import getopt
 import os
 import pickle
 import math
+from tqdm import tqdm
+
 
 from TermDictionary import TermDictionary
 from Node import Node
@@ -44,11 +46,19 @@ def build_index(in_dir, out_dict, out_postings):
     count = 0
     tokenStreamBatch = []
     docLengths = {} # {docID : length, docID2 : length, ...}, to be added dumped into the postings file with its pointer stored in the final termDictionary file
+    
+    maxInt = sys.maxsize
+    while True:
+        try:
+            csv.field_size_limit(maxInt)
+            break
+        except OverflowError:
+            maxInt = int(maxInt / 10)
 
     with open(input_directory, newline='', encoding='UTF-8') as f:
         reader = csv.reader(f)
 
-        for row, col in enumerate(reader):
+        for row, col in tqdm(enumerate(reader)):
             if row == 0:
                 continue # skips row 0 (to avoid procesing field names)
 
@@ -106,10 +116,10 @@ def generateProcessedTokenStream(content, docID):
         stemmedWord = stemmer.stem(word.lower())
 
         if stemmedWord in countOfTerms:
-            countOfTerms[word] += 1
+            countOfTerms[stemmedWord] += 1
         
         else:
-            countOfTerms[word] = 1
+            countOfTerms[stemmedWord] = 1
 
     weightOfTerms = {term : 1 + math.log10(value) for term, value in countOfTerms.items()} # no idf
     lengthOfDocVector = math.sqrt(sum([count**2 for count in weightOfTerms.values()]))
@@ -117,13 +127,6 @@ def generateProcessedTokenStream(content, docID):
     output = [(term, docID, weight,lengthOfDocVector) for term, weight in weightOfTerms.items()] # all terms in a particular document, and its associated term weight, and length of vector
 
     return output  # returns a list of processed terms in the form of [(term1, docID, weight, docVectorLength), (term2, docID, docVectorLength), ...]
-
-
-def isNumber(token):
-    if regex.match(r'[0-9]+[^0-9][0-9]+', token):
-        return True
-
-    return False
 
 
 def isNotPunctuation(token):
@@ -177,5 +180,4 @@ if input_directory == None or output_file_postings == None or output_file_dictio
     usage()
     sys.exit(2)
 
-nltk.download('stopwords')
 build_index(input_directory, output_file_dictionary, output_file_postings)

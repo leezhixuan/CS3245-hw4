@@ -58,20 +58,25 @@ def build_index(in_dir, out_dict, out_postings):
     with open(input_directory, newline='', encoding='UTF-8') as f:
         reader = csv.reader(f)
 
+        limit2 = 50
         for row, col in tqdm(enumerate(reader)):
             if row == 0:
                 continue # skips row 0 (to avoid procesing field names)
 
             docID, title, content, date, court = col
-            tokenStream = generateProcessedTokenStream(content, docID)
+            print(docID)
+            tokenStream = generateProcessedTokenStream(content)
             docLengths[docID] = len(tokenStream)
-            tokenStreamBatch.append(tokenStream)
+            tokenStreamBatch.append((int(docID), tokenStream))
             count+=1
+
+            if count == limit2:
+                break
 
             if count == limit: # no. of docs == limit
                 outputPostingsFile = workingDirectory + 'tempPostingFile' + str(fileID) + '_stage' + str(stageOfMerge) + '.txt'
                 outputDictionaryFile = workingDirectory + 'tempDictionaryFile' + str(fileID) + '_stage' + str(stageOfMerge) + '.txt'
-                SPIMIInvert(tokenStream, outputPostingsFile, outputDictionaryFile)
+                SPIMIInvert(tokenStreamBatch, outputPostingsFile, outputDictionaryFile)
                 fileID+=1
                 count = 0 # reset counter
                 tokenStream = [] # clear tokenStream
@@ -80,7 +85,7 @@ def build_index(in_dir, out_dict, out_postings):
         if count > 0: # in case the number of files isnt a multiple of the limit set
             outputPostingsFile = workingDirectory + 'tempPostingFile' + str(fileID) + '_stage' + str(stageOfMerge) + '.txt'
             outputDictionaryFile = workingDirectory + 'tempDictionaryFile' + str(fileID) + '_stage' + str(stageOfMerge) + '.txt'
-            SPIMIInvert(tokenStream, outputPostingsFile, outputDictionaryFile)
+            SPIMIInvert(tokenStreamBatch, outputPostingsFile, outputDictionaryFile)
             fileID+=1 # passed into binary merge, and it will be for i in range(0, fileID, 2) --> will cover everything
 
         #inverting done. Tons of dict files and postings files to merge
@@ -102,7 +107,7 @@ def build_index(in_dir, out_dict, out_postings):
     shutil.rmtree(workingDirectory, ignore_errors=True)
 
 
-def generateProcessedTokenStream(content, docID):
+def generateProcessedTokenStream(content):
     stemmer = nltk.stem.PorterStemmer()
     countOfTerms = {}
 
@@ -124,9 +129,9 @@ def generateProcessedTokenStream(content, docID):
     weightOfTerms = {term : 1 + math.log10(value) for term, value in countOfTerms.items()} # no idf
     lengthOfDocVector = math.sqrt(sum([count**2 for count in weightOfTerms.values()]))
 
-    output = [(term, docID, weight,lengthOfDocVector) for term, weight in weightOfTerms.items()] # all terms in a particular document, and its associated term weight, and length of vector
+    output = [(term, weight, lengthOfDocVector) for term, weight in weightOfTerms.items()] # all terms in a particular document, and its associated term weight, and length of vector
 
-    return output  # returns a list of processed terms in the form of [(term1, docID, weight, docVectorLength), (term2, docID, docVectorLength), ...]
+    return output  # returns a list of processed terms in the form of [(term1, weight, docVectorLength), (term2, weight, docVectorLength), ...]
 
 
 def isNotPunctuation(token):

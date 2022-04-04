@@ -4,39 +4,65 @@ import math
 
 from TermDictionary import TermDictionary
 
-def SPIMIInvert(tokenStream, outputFile, dictFile):
+def SPIMIInvert(tokenStreamBatch, outputFile, dictFile):
     """
     This function is akin to the one we've seen the in textbook. Each call to
     SPIMIInvert writes a block to disk.
     """
-    tempDict = {} # {term : {docID : [termFreq, weight, vectorLength], docID2 : [termFreq, weight, vectorLength2], ...}, term2 : ...}
+    # tokenStreamBatch: [(docID, [(term1, weight, docVectorLength), (term2, weight, docVectorLength), ...]), (docID2, [(term1, weight, docVectorLength), (term2, weight, docVectorLength), ...]]
+    tempDict = {} # {term : {docID : [termFreq, weight, vectorLength, positionalList], docID2 : [termFreq, weight, vectorLength2, positionalList], ...}, term2 : ...}
     termDict = TermDictionary(dictFile)
 
-    for termDocIDWeightLengthQuartet in tokenStream: # tokenStream is in the form of [(term1, docID, weight, vectorLength), (term2, docID, weight, vectorLength2), ...]
-        term = termDocIDWeightLengthQuartet[0]
-        docID = termDocIDWeightLengthQuartet[1] 
-        weight = termDocIDWeightLengthQuartet[2]
-        vectorDocLength = termDocIDWeightLengthQuartet[3] # can have 2 occurence of the same term hence 2 occurence of the vectorLength
-        if term not in tempDict:
-            tempDict[term] = {}
-            tempDict[term][docID] = [1, weight, vectorDocLength]
-        else:
-            # 2 cases when term is already present in the tempDict:
-            #   1. we have seen its docID
-            if docID in tempDict[term]:
-                tempDict[term][docID][0]+=1
+    for metadata in tokenStreamBatch: # tokenStream is in the form of [(docID, [(term1, docID, weight, vectorLength), (term2, docID, weight, vectorLength2), ...]), ...]
+        docID = metadata[0]
+        tokenStream = metadata[1]
+        positionalDict = createPositionalDict(tokenStream)
 
-            #   2. we have not seen its docID
+        for trio in tokenStream:
+            term = trio[0]
+            weight = trio[1]
+            vectorDocLength = trio[2] # can have 2 occurence of the same term hence 2 occurence of the vectorLength
+
+            if term not in tempDict:
+                tempDict[term] = {}
+                tempDict[term][docID] = [1, weight, vectorDocLength, positionalDict[term]]
             else:
-                tempDict[term][docID] = [1, weight, vectorDocLength]
+                # 2 cases when term is already present in the tempDict:
+                #   1. we have seen its docID
+                if docID in tempDict[term]:
+                    # increment its termFreq
+                    tempDict[term][docID][0]+=1
+
+                #   2. we have not seen its docID
+                else:
+                    tempDict[term][docID] = [1, weight, vectorDocLength, positionalDict[term]]
 
     with open(outputFile, 'wb') as f:
-        for term in sorted(tempDict): # {term : {docID : [termFreq, weight, vectorLength], docID2 : [termFreq, weight, vectorLength2], ...}, term2 : ...}
+        for term in sorted(tempDict): # {term : {docID : [termFreq, weight, vectorLength, postionalList], docID2 : [termFreq, weight, vectorLength2, positionalList], ...}, term2 : ...}
             pointer = f.tell()
-            pickle.dump(tempDict[term], f) # store the dictionary {docID : [termFreq, weight, vectorLength], docID2 : [termFreq, weight, vectorLength2], ...}
+            pickle.dump(tempDict[term], f) # store the dictionary {docID : [termFreq, weight, vectorLength, positionalList], docID2 : [termFreq, weight, vectorLength2, positionalList], ...}
             termDict.addTerm(term, len(tempDict[term]), pointer) # update TermDictionary
     
     termDict.save()
+
+
+def createPositionalDict(tokenStream):
+    # facilitates phrasal queries.
+    # creates a dictionary of {term: [index1, index2, ...], term2: [index1, index2, ...], ...} for content from a particular document.
+    index = 0
+    positionalDict = {}
+
+    for trio in tokenStream:
+        term = trio[0]
+        if term in positionalDict:
+            positionalDict[term].append(index)
+            index += 1
+
+        else: # term not in positionalDict yet
+            positionalDict[term] = [index]
+            index += 1
+
+    return positionalDict
 
 
 def retrievePostingsDict(file, pointer):
@@ -106,9 +132,11 @@ def mergePostingsDict(dict1, dict2):
 
     for docID in unionOfDocIDs:
         result[docID] = [getTermFrequency(dict1, docID) + getTermFrequency(dict2, docID), 
-            max(getTermWeight(dict1, docID), getTermWeight(dict2, docID)), max(getVectorDocLength(dict1, docID), getVectorDocLength(dict2, docID))]
+            max(getTermWeight(dict1, docID), getTermWeight(dict2, docID)), max(getVectorDocLength(dict1, docID), getVectorDocLength(dict2, docID),
+            getPositionalList(dict1, docID).append(getPositionalList, docID))]
             # max() is used because of the way we process files; we process documents fully, and 1024 at a time. Thus, no 2 dictionary file will contain the same
             # docIDs. max() is used because we don't know which of the 2 dictionary contains a particular docID.
+            # This is true for positional lists as well.
 
     return result
         
@@ -152,32 +180,46 @@ def getVectorDocLength(postingsDict, docID):
         return 0
 
 
+def getPositionalList(postingsDict, docID):
+    try:
+        return postingsDict[docID][3]
+
+    except KeyError:
+        return []
+
+
 def binaryMerge(dir, fileIDs, outputPostingsFile, outputDictFile):
     """
     Performs binary merge on all files in the specified directory.
     """
-    for stage in range(math.ceil(math.log2(fileIDs))): # no. of times we merge is proportional to the no. of unique fileIDs in the directory
-        newFileID = 0 # to merged file identifier
-        for ID in range(0, fileIDs, 2): # merge files_docID with files_ID+1
-            if ID + 1 < fileIDs:
-                dictFile1 = dir + 'tempDictionaryFile' + str(ID) + '_stage' + str(stage) + '.txt'
-                dictFile2 = dir + 'tempDictionaryFile' + str(ID + 1) + '_stage' + str(stage) + '.txt'
-                postingsFile1 = dir + 'tempPostingFile' + str(ID) + '_stage' + str(stage) + '.txt'
-                postingsFile2 = dir + 'tempPostingFile' + str(ID + 1) + '_stage' + str(stage) + '.txt'
-                outDictFile = dir + 'tempDictionaryFile' + str(newFileID) + '_stage' + str(stage + 1) + '.txt'
-                outPostingsFile = dir + 'tempPostingFile' + str(newFileID) + '_stage' + str(stage + 1) + '.txt'
-                mergeDictsAndPostings(dictFile1, postingsFile1, dictFile2, postingsFile2, outDictFile, outPostingsFile)
+    noOfMerge = math.ceil(math.log2(fileIDs))
+    if noOfMerge > 0:
+        for stage in range(noOfMerge): # no. of times we merge is proportional to the no. of unique fileIDs in the directory
+            newFileID = 0 
+            for ID in range(0, fileIDs, 2): # merge files_docID with files_ID+1
+                if ID + 1 < fileIDs:
+                    dictFile1 = dir + 'tempDictionaryFile' + str(ID) + '_stage' + str(stage) + '.txt'
+                    dictFile2 = dir + 'tempDictionaryFile' + str(ID + 1) + '_stage' + str(stage) + '.txt'
+                    postingsFile1 = dir + 'tempPostingFile' + str(ID) + '_stage' + str(stage) + '.txt'
+                    postingsFile2 = dir + 'tempPostingFile' + str(ID + 1) + '_stage' + str(stage) + '.txt'
+                    outDictFile = dir + 'tempDictionaryFile' + str(newFileID) + '_stage' + str(stage + 1) + '.txt'
+                    outPostingsFile = dir + 'tempPostingFile' + str(newFileID) + '_stage' + str(stage + 1) + '.txt'
+                    mergeDictsAndPostings(dictFile1, postingsFile1, dictFile2, postingsFile2, outDictFile, outPostingsFile)
+                    
+                else: # there is an odd number of files in the directory
+                    oldDictFile = dir + 'tempDictionaryFile' + str(ID) + '_stage' + str(stage) + '.txt'
+                    newDictFile = dir + 'tempDictionaryFile' + str(newFileID) + '_stage' + str(stage + 1) + '.txt'
+                    oldPostingsFile = dir + 'tempPostingFile' + str(ID) + '_stage' + str(stage) + '.txt'
+                    newPostingsFile = dir + 'tempPostingFile' + str(newFileID) + '_stage' + str(stage + 1) + '.txt'
+                    os.rename(oldDictFile, newDictFile)
+                    os.rename(oldPostingsFile, newPostingsFile)
                 
-            else: # there is an odd number of files in the directory
-                oldDictFile = dir + 'tempDictionaryFile' + str(ID) + '_stage' + str(stage) + '.txt'
-                newDictFile = dir + 'tempDictionaryFile' + str(newFileID) + '_stage' + str(stage + 1) + '.txt'
-                oldPostingsFile = dir + 'tempPostingFile' + str(ID) + '_stage' + str(stage) + '.txt'
-                newPostingsFile = dir + 'tempPostingFile' + str(newFileID) + '_stage' + str(stage + 1) + '.txt'
-                os.rename(oldDictFile, newDictFile)
-                os.rename(oldPostingsFile, newPostingsFile)
-            
-            newFileID+=1
-        fileIDs = newFileID
+                newFileID+=1
+            fileIDs = newFileID
+
+    else:
+        newFileID = 1
+        stage = -1
 
     # here, i will only have 1 dictionary.txt and 1 postings.txt (the end)
     # move these out into the main directory.

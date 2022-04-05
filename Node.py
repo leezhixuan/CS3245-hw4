@@ -3,11 +3,12 @@ class Node(object):
     Node is a class that stores a docID, the term frequency in document <docID>, the term weight, and the vector length of document <docID>.
     """
 
-    def __init__(self, docID, termFrequency, termWeight, vectorDocLength):
+    def __init__(self, docID, termFrequency, termWeight, vectorDocLength, positionalList):
         self.docID = docID
         self.termFrequency = termFrequency
         self.termWeight = termWeight
         self.vectorDocLength = vectorDocLength
+        self.positionalList = positionalList
 
 
     def getTermFrequency(self):
@@ -22,12 +23,16 @@ class Node(object):
         return self.vectorDocLength
 
 
+    def getPositionalList(self):
+        return self.positionalList
+
+
     def __str__(self):
         return str(self.docID)
 
 
     def __repr__(self):
-        return "(" + str(self.docID) + ", " + str(self.termFrequency) + ", " + str(self.termWeight) + ", " + str(self.vectorDocLength) +")"
+        return "(" + str(self.docID) + ", " + str(self.termFrequency) + ", " + str(self.termWeight) + ", " + str(self.vectorDocLength) + ", " + str(self.positionalList) + ")"
 
 
     def getDocID(self):

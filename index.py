@@ -157,7 +157,7 @@ def convertToPostingNodes(out_postings, file, termDictionary):
                 ref.seek(pointer)
                 docIDsDict = pickle.load(ref) # loads a dictionary of docIDs
 
-                postingsNodes = [Node(docID, docIDsDict[docID][0], docIDsDict[docID][1], docIDsDict[docID][2]) for docID in docIDsDict] # create Nodes
+                postingsNodes = [Node(docID, docIDsDict[docID][0], docIDsDict[docID][1], docIDsDict[docID][2], docIDsDict[docID][3]) for docID in docIDsDict] # create Nodes
                 newPointer = output.tell() # new pointer location
                 pickle.dump(postingsNodes, output)
                 termDictionary.updatePointerToPostings(term, newPointer) # term entry is now --> term : [docFreq, pointer]

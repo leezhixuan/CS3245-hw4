@@ -7,6 +7,8 @@ import math
 import heapq
 
 from TermDictionary import TermDictionary
+from Operand import Operand
+from Node import Node
 
 
 def usage():
@@ -37,27 +39,204 @@ def run_search(dict_file, postings_file, queries_file, results_file):
         outputResult = "\n".join(allResults) # to output all result onto a new line.
         resultFile.write(outputResult)
 
-def processQuery(query):
+
+def processQuery(query, dictFile, postings_file):
     if len(query) == 0:
         return
 
     if "AND" in query:
-        booleanQuery(query)
+        return booleanQuery(query)
     else:
-        pass
+        return freeTextQuery(query)
 
 
 def booleanQuery(query):
     pass
 
+
 def freeTextQuery(query):
     pass
+
 
 def phrasalQuery(query):
     pass
 
 
-    
+def shuntingYard(query):
+    """
+    This is the Shunting-yard algorithm. It parses a query string and returns them
+    in Reverse Polish Notation.
+    """
+    operatorStack = []  # enters from the back, exits from the back
+    output = []
+    queryTerms = splitQuery(query)
+
+    for term in queryTerms:
+        if term == "AND":
+            while len(operatorStack) > 0:
+                output.append(operatorStack.pop())
+            operatorStack.append(term)
+        else:
+            output.append(term)
+
+    while len(operatorStack) > 0:
+        output.append(operatorStack.pop())
+
+    return output
+
+
+def splitQuery(query):
+    """
+    Takes in a query string and splits it into an array of query terms and operators,
+    without spaces
+    """
+    temp = nltk.tokenize.word_tokenize(query)
+    stemmer = nltk.stem.porter.PorterStemmer()  # stem query like how we stem terms in corpus
+    result = []
+    flag = 0  # indicates an unclosed apostrophe
+    phrase = ""
+    for term in temp:
+        if (term == "\'\'" or term == "\"\"" or term == "``") and flag == 0:
+            flag = 1
+            continue
+        elif (term == "\'\'" or term == "\"\"" or term == "``") and flag == 1:  # phrase concluded
+            flag = 0
+            result.append(phrase[:len(phrase)-2])  # remove extra space at end of phrase
+            phrase = ""
+            continue
+        elif not term == "AND":  # don't case-fold operators
+            if flag == 0:  # not within phrase
+                result.append(stemmer.stem(term.lower()))
+            else:  # within phrase
+                phrase += stemmer.stem(term.lower()) + " "
+        else:  # term is an Operator
+            result.append(term)
+    return result
+
+
+def retrievePostingsList(file, pointer):
+    """
+    Given a pointer to determine the location in disk,
+    retrieves the postings list from that location.
+    """
+    if pointer == -1: # for non-existent terms
+        return []
+
+    with open(file, 'rb') as f:
+        f.seek(pointer)
+        postingsList = pickle.load(f)
+    f.close()
+
+    return postingsList
+
+
+def evalAND(operand1, operand2, dictFile, postingsFile):
+    """
+    input: TermDictionary as dictFile
+    input: name of posting file as postingsFile
+    output: Operand containing result
+    Calls evalAND_terms/evalAND_term_result/evalAND_results depending on operand types
+    """
+    # Both inputs are terms
+    if operand1.isTerm() and operand2.isTerm():
+        term1, term2 = operand1.getTerm(), operand2.getTerm()
+        result = evalAND_terms(term1, term2, dictFile, postingsFile)
+
+    # Input 1 is term, Input 2 is result
+    elif operand1.isTerm() and operand2.isResult():
+        term = operand1.getTerm()
+        res = operand2.getResult()
+        result = evalAND_term_result(term, res, dictFile, postingsFile)
+
+    # Input 2 is term, Input 1 is result
+    elif operand2.isTerm() and operand1.isResult():
+        term = operand2.getTerm()
+        res = operand1.getResult()
+        result = evalAND_term_result(term, res, dictFile, postingsFile)
+
+    # Both inputs are results
+    else:
+        result1 = operand1.getResult()
+        result2 = operand2.getResult()
+        result = evalAND_results(result1, result2)
+
+    return Operand(term=None, result=result)
+
+
+def evalAND_terms(term1, term2, dictFile, postingsFile):
+    """
+    Computes and returns the intersection of the postings lists of the 2 terms provided.
+    """
+    result = set()
+    pointer1 = dictFile.getTermPointer(term1)
+    pointer2 = dictFile.getTermPointer(term2)
+    pl1 = retrievePostingsList(postingsFile, pointer1)
+    pl2 = retrievePostingsList(postingsFile, pointer2)
+
+    if len(pl1) == 0 or len(pl2) == 0:  # either term1 or term2, or both do not exist in the corpus.
+        return sorted(result)
+
+    # else, pointer1 and pointer2 are not empty lists
+
+    while pl1 != [] and pl2 != []:
+        if Node.getDocID(pl1[0]) == Node.getDocID(pl2[0]):  # Intersection, add to results
+            result.add(Node.getDocID(pl1[0]))
+            pl1, pl2 = pl1[1:], pl2[1:]
+        else:
+            # Advance list with smaller docID
+            if Node.getDocID(pl1[0]) < Node.getDocID(pl2[0]):
+                # Check if skip pointers exist, and use if feasible
+                if Node.hasSkip(pl1[0]) and Node.getDocID(pl1[pl1[0].skipPointer]) < Node.getDocID(pl2[0]):
+                    pl1 = pl1[pl1[0].skipPointer:]
+                else:
+                    pl1 = pl1[1:]
+            else:
+                # Check if skip pointers exist, and use if feasible
+                if Node.hasSkip(pl2[0]) and Node.getDocID(pl2[pl2[0].skipPointer]) < Node.getDocID(pl1[0]):
+                    pl2 = pl2[pl2[0].skipPointer:]
+                else:
+                    pl2 = pl2[1:]
+
+    return sorted(result)
+
+
+def evalAND_term_result(term, res, dictFile, postingsFile):
+    """
+    Computes and returns the intersection of the postings list of the term and
+    result list provided.
+    """
+    result = set()
+    pointer = dictFile.getTermPointer(term)
+    pl = retrievePostingsList(postingsFile, pointer)
+
+    if len(pl) == 0 or len(res) == 0:  # if term does not exist in the corpus
+        return sorted(result)
+
+    # else, pl and res are not empty lists
+
+    while pl != [] and res != []:
+        if Node.getDocID(pl[0]) == res[0]:  # Intersection, add to results
+            result.add(res[0])
+            pl, res = pl[1:], res[1:]
+        else:
+            # Advance list with smaller docID
+            if Node.getDocID(pl[0]) < res[0]:
+                # Check if skip pointers exist, and use if feasible
+                if Node.hasSkip(pl[0]) and Node.getDocID(pl[pl[0].skipPointer]) < res[0]:
+                    pl = pl[pl[0].skipPointer:]
+                else:
+                    pl = pl[1:]
+            else:
+                res = res[1:]
+
+    return sorted(result)
+
+
+def evalAND_results(result1, result2):
+    """
+    Computes and returns the intersection of the 2 result list that are provided.
+    """
+    return sorted(set.intersection(set(result1), set(result2)))
 
 
 dictionary_file = postings_file = file_of_queries = output_file_of_results = None

@@ -9,6 +9,7 @@ class Node(object):
         self.termWeight = termWeight
         self.vectorDocLength = vectorDocLength
         self.positionalList = positionalList
+        self.skipPointer = 0  # target index = skipPointer + currentIndex
 
 
     def getTermFrequency(self):
@@ -37,3 +38,15 @@ class Node(object):
 
     def getDocID(self):
         return self.docID
+
+    def addSkipPointer(self, value):
+        """
+        Adds a skip pointer to the Node
+        """
+        self.skipPointer = value
+
+    def hasSkip(self):
+        """
+        Checks if the Node contains a skip pointer.
+        """
+        return self.skipPointer != 0

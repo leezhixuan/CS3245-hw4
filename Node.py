@@ -1,6 +1,6 @@
 class Node(object):
     """
-    Node is a class that stores a docID, the term frequency in document <docID>, the term weight, and the vector length of document <docID>.
+    Node is a class that stores a docID, its skip pointer, the term frequency in document <docID>, the term weight, and the vector length of document <docID>.
     """
 
     def __init__(self, docID, termFrequency, termWeight, vectorDocLength, positionalList):
@@ -33,17 +33,19 @@ class Node(object):
 
 
     def __repr__(self):
-        return "(" + str(self.docID) + ", " + str(self.termFrequency) + ", " + str(self.termWeight) + ", " + str(self.vectorDocLength) + ", " + str(self.positionalList) + ")"
+        return "(" + str(self.docID) + ", " + str(self.termFrequency) + ", " + str(self.skipPointer) + ", " + str(self.termWeight) + ", " + str(self.vectorDocLength) + ", " + str(self.positionalList) + ")"
 
 
     def getDocID(self):
         return self.docID
+
 
     def addSkipPointer(self, value):
         """
         Adds a skip pointer to the Node
         """
         self.skipPointer = value
+
 
     def hasSkip(self):
         """

@@ -64,7 +64,7 @@ def build_index(in_dir, out_dict, out_postings):
                 continue # skips row 0 (to avoid procesing field names)
 
             docID, title, content, date, court = col
-            print(docID)
+            # print(docID)
             tokenStream = generateProcessedTokenStream(content)
             docLengths[docID] = len(tokenStream)
             tokenStreamBatch.append((int(docID), tokenStream))
@@ -158,9 +158,28 @@ def convertToPostingNodes(out_postings, file, termDictionary):
                 docIDsDict = pickle.load(ref) # loads a dictionary of docIDs
 
                 postingsNodes = [Node(docID, docIDsDict[docID][0], docIDsDict[docID][1], docIDsDict[docID][2], docIDsDict[docID][3]) for docID in docIDsDict] # create Nodes
+                insertSkipPointers(postingsNodes, len(postingsNodes))
                 newPointer = output.tell() # new pointer location
                 pickle.dump(postingsNodes, output)
                 termDictionary.updatePointerToPostings(term, newPointer) # term entry is now --> term : [docFreq, pointer]
+
+
+def insertSkipPointers(nodeArray, length):
+    """
+    Given an array of postings Nodes, add skip pointers into a Node at regular skip intervals
+    and output an array of Nodes with skip pointers.
+    """
+    skipInterval = int(math.sqrt(length))
+    endOfIndex = length - 1
+    currentIndex = 0
+
+    for node in nodeArray:
+        if (currentIndex % skipInterval == 0 and currentIndex + skipInterval <= endOfIndex):
+            # makes sure that it is time for a skip pointer to be inserted and it is not inserted into
+            # a node that will facilitate a skip past the last node.
+            node.addSkipPointer(skipInterval)
+
+        currentIndex+=1
 
 
 input_directory = output_file_dictionary = output_file_postings = None

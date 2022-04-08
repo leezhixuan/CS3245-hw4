@@ -22,15 +22,15 @@ def run_search(dict_file, postings_file, queries_file, results_file):
     """
     print('running search on the queries...')
 
-    dictFile = TermDictionary(dict_file)
-    dictFile.load()  # load term information into dictFile from dict_file
+    termDict = TermDictionary(dict_file)
+    termDict.load()  # load term information into dictFile from dict_file
 
     with open(queries_file, 'r') as queryFile, open(results_file, 'w') as resultFile:
         allResults = []
 
         for query in queryFile:
             if query.strip():
-                result = processQuery(query, dictFile, postings_file)
+                result = processQuery(query, termDict, postings_file)
                 allResults.append(result)
 
             else:

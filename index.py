@@ -30,7 +30,7 @@ def build_index(in_dir, out_dict, out_postings):
 
     tempFile = 'temp.txt'
     workingDirectory = "workingDirectory/"
-    limit = 1024 # max number of docs to be processed at any 1 time.
+    limit = 10000 # max number of docs to be processed at any 1 time.
     result = TermDictionary(out_dict)
 
     # set up temp directory for SPIMI process
@@ -58,7 +58,6 @@ def build_index(in_dir, out_dict, out_postings):
     with open(input_directory, newline='', encoding='UTF-8') as f:
         reader = csv.reader(f)
 
-        limit2 = 50
         for row, col in tqdm(enumerate(reader)):
             if row == 0:
                 continue # skips row 0 (to avoid procesing field names)
@@ -68,16 +67,13 @@ def build_index(in_dir, out_dict, out_postings):
             tokenStream = generateProcessedTokenStream(content)
             docLengths[docID] = len(tokenStream)
             tokenStreamBatch.append((int(docID), tokenStream))
-            count+=1
-
-            if count == limit2:
-                break
+            count += 1
 
             if count == limit: # no. of docs == limit
                 outputPostingsFile = workingDirectory + 'tempPostingFile' + str(fileID) + '_stage' + str(stageOfMerge) + '.txt'
                 outputDictionaryFile = workingDirectory + 'tempDictionaryFile' + str(fileID) + '_stage' + str(stageOfMerge) + '.txt'
                 SPIMIInvert(tokenStreamBatch, outputPostingsFile, outputDictionaryFile)
-                fileID+=1
+                fileID += 1
                 count = 0 # reset counter
                 tokenStream = [] # clear tokenStream
 
@@ -86,9 +82,9 @@ def build_index(in_dir, out_dict, out_postings):
             outputPostingsFile = workingDirectory + 'tempPostingFile' + str(fileID) + '_stage' + str(stageOfMerge) + '.txt'
             outputDictionaryFile = workingDirectory + 'tempDictionaryFile' + str(fileID) + '_stage' + str(stageOfMerge) + '.txt'
             SPIMIInvert(tokenStreamBatch, outputPostingsFile, outputDictionaryFile)
-            fileID+=1 # passed into binary merge, and it will be for i in range(0, fileID, 2) --> will cover everything
+            fileID += 1 # passed into binary merge, and it will be for i in range(0, fileID, 2) --> will cover everything
 
-        #inverting done. Tons of dict files and postings files to merge
+        # inverting done. Tons of dict files and postings files to merge
         binaryMerge(workingDirectory, fileID, tempFile, out_dict)
         result = TermDictionary(out_dict)
         result.load()
@@ -179,7 +175,7 @@ def insertSkipPointers(nodeArray, length):
             # a node that will facilitate a skip past the last node.
             node.addSkipPointer(skipInterval)
 
-        currentIndex+=1
+        currentIndex += 1
 
 
 input_directory = output_file_dictionary = output_file_postings = None

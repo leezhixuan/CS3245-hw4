@@ -1,8 +1,8 @@
 __pycache__/
+/queries
 dataset.csv
 *.pdf
-
-
 *.pyc
 *.pyo
+*.txt
 .DS_Store

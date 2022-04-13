@@ -1,7 +1,20 @@
 import nltk
+import pickle
 
-from Node import Node
-from search import retrievePostingsList
+def retrievePostingsList(file, pointer):
+    """
+    Given a pointer to determine the location in disk,
+    retrieves the postings list from that location.
+    """
+    if pointer == -1: # for non-existent terms
+        return []
+
+    with open(file, 'rb') as f:
+        f.seek(pointer)
+        postingsList = pickle.load(f)
+    f.close()
+
+    return postingsList
 
 def processPharsalQuery(query, termDict, postingsFile):
     """
@@ -23,6 +36,7 @@ def processPharsalQuery(query, termDict, postingsFile):
         postings2 = retrievePostingsList(postingsFile, pointer2)
 
         result = twoTermPhrasalHelper(postings1, postings2)
+        return result
 
     elif len(queryTerms) == 3:
         pointer1 = termDict.getTermPointer(queryTerms[0])
@@ -33,6 +47,7 @@ def processPharsalQuery(query, termDict, postingsFile):
         postings3 = retrievePostingsList(postingsFile, pointer3)
 
         result = threeTermPhrasalHelper(postings1, postings2, postings3)
+        return result
     else:
         return []
 

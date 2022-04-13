@@ -1,15 +1,20 @@
 from xmlrpc.client import boolean
+from cv2 import split
 import nltk
 import sys
 import getopt
 import pickle
 import math
 import heapq
+from SPIMI import getTermFrequency
 
 from TermDictionary import TermDictionary
 from Operand import Operand
 from Node import Node
+from phrasal import processPharsalQuery
+from free_text import cosineScores
 
+TOP_K = 10
 
 def usage():
     print("usage: " + sys.argv[0] + " -d dictionary-file -p postings-file -q file-of-queries -o output-file-of-results")
@@ -31,7 +36,8 @@ def run_search(dict_file, postings_file, queries_file, results_file):
         for query in queryFile:
             if query.strip():
                 result = processQuery(query, termDict, postings_file)
-                allResults.append(result)
+                if result != None and len(result) > 0:
+                    allResults.append(result)
 
             else:
                 allResults.append("")
@@ -39,28 +45,59 @@ def run_search(dict_file, postings_file, queries_file, results_file):
         outputResult = "\n".join(allResults) # to output all result onto a new line.
         resultFile.write(outputResult)
 
+def isValidQuery(query):
+    quotation_count = query.count('\"')
+    and_count = query.count('AND')
+
+    if quotation_count % 2 == 1:
+        return False
+    if quotation_count > 2 and and_count == 0:
+        return False
+    if quotation_count == 0 and and_count > 1:
+        return False
+    
+    terms = splitQuery(query)
+    if len(terms) - and_count > and_count + 1 and and_count >= 1:
+        return False
+
+    return True
 
 def processQuery(query, dictFile, postings_file):
-    if len(query) == 0:
+    if len(query) == 0 or not isValidQuery(query):
         return
 
     if "AND" in query:
-        return booleanQuery(query)
+        return booleanQuery(query, dictFile, postings_file)
+    elif '\"' in query:
+        return phrasalQuery(query, dictFile, postings_file)
     else:
-        return freeTextQuery(query)
+        return freeTextQuery(query, dictFile, postings_file)
 
 
-def booleanQuery(query):
-    pass
+def booleanQuery(query, dictFile, postings_file):
+    tokens = shuntingYard(query)
+    operants = list()
+    while len(tokens) > 0:
+        token = tokens.pop()
+        if token.isTerm() or token.isResult():
+            operants.append(token)
+        elif token == 'AND':
+            op1 = operants.pop() 
+            op2 = operants.pop()
+            result = evalAND(op1, op2, dictFile, postings_file)
+            operants.append(result)
+    return operants.pop()
 
 
-def freeTextQuery(query):
-    pass
+def freeTextQuery(query, dictFile, postings_file):
+    return cosineScores(query, dictFile, postings_file)
 
 
-def phrasalQuery(query):
-    pass
-
+def phrasalQuery(query, dictFile, postings_file):
+    query = splitQuery(query)[0]
+    result = processPharsalQuery(query, dictFile, postings_file)
+    return result
+    
 
 def shuntingYard(query):
     """
@@ -95,6 +132,7 @@ def splitQuery(query):
     result = []
     flag = 0  # indicates an unclosed apostrophe
     phrase = ""
+    
     for term in temp:
         if (term == "\'\'" or term == "\"\"" or term == "``") and flag == 0:
             flag = 1

@@ -56,13 +56,14 @@ def createPositionalDict(tokenStream):
 
     for trio in tokenStream:
         term = trio[0]
+
         if term in positionalDict:
             positionalDict[term].append(index)
-            index += 1
 
         else: # term not in positionalDict yet
             positionalDict[term] = [index]
-            index += 1
+
+        index += 1
 
     return positionalDict
 
@@ -133,9 +134,12 @@ def mergePostingsDict(dict1, dict2):
     result = {}
 
     for docID in unionOfDocIDs:
+        posList = getPositionalList(dict1, docID)
+        posList.extend(getPositionalList(dict2, docID))
         result[docID] = [getTermFrequency(dict1, docID) + getTermFrequency(dict2, docID), 
-            max(getTermWeight(dict1, docID), getTermWeight(dict2, docID)), max(getVectorDocLength(dict1, docID), getVectorDocLength(dict2, docID),
-            getPositionalList(dict1, docID).append(getPositionalList, docID))]
+            max(getTermWeight(dict1, docID), getTermWeight(dict2, docID)), 
+            max(getVectorDocLength(dict1, docID), getVectorDocLength(dict2, docID)),
+            posList]
             # max() is used because of the way we process files; we process documents fully, and 1024 at a time. Thus, no 2 dictionary file will contain the same
             # docIDs. max() is used because we don't know which of the 2 dictionary contains a particular docID.
             # This is true for positional lists as well.

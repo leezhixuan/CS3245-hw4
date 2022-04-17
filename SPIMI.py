@@ -9,6 +9,7 @@ def SPIMIInvert(tokenStreamBatch, outputFile, dictFile):
     This function is akin to the one we've seen the in textbook. Each call to
     SPIMIInvert writes a block to disk.
     """
+    # this processes the terms in each document individually.
     # tokenStreamBatch: [(docID, [(term1, weight, docVectorLength), (term2, weight, docVectorLength), ...]), (docID2, [(term1, weight, docVectorLength), (term2, weight, docVectorLength), ...]]
     tempDict = {} # {term : {docID : [termFreq, weight, vectorLength, positionalList], docID2 : [termFreq, weight, vectorLength2, positionalList], ...}, term2 : ...}
     termDict = TermDictionary(dictFile)
@@ -47,6 +48,7 @@ def SPIMIInvert(tokenStreamBatch, outputFile, dictFile):
 
 
 def createPositionalDict(tokenStream):
+    # tokenStream is a list of terms with their relevant data
     # facilitates phrasal queries.
     # creates a dictionary of {term: [index1, index2, ...], term2: [index1, index2, ...], ...} for content from a particular document.
     index = 0

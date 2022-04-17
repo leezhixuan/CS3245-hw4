@@ -79,14 +79,15 @@ def booleanQuery(query, dictFile, postings_file):
     operants = list()
     while len(tokens) > 0:
         token = tokens.pop()
-        if token.isTerm() or token.isResult():
-            operants.append(token)
+        if isinstance(token, str):
+            op = Operand(term=token)
+            operants.append(op)
         elif token == 'AND':
             op1 = operants.pop() 
             op2 = operants.pop()
             result = evalAND(op1, op2, dictFile, postings_file)
             operants.append(result)
-    return operants.pop()
+    return operants.pop().getResult()
 
 
 def freeTextQuery(query, dictFile, postings_file):

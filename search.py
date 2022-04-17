@@ -37,6 +37,7 @@ def run_search(dict_file, postings_file, queries_file, results_file):
             if query.strip():
                 result = processQuery(query, termDict, postings_file)
                 if result != None and len(result) > 0:
+                    result = " ".join(map(str, list(result)))
                     allResults.append(result)
 
             else:

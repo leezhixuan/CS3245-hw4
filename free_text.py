@@ -53,7 +53,7 @@ def cosineScores(query, dictionary, postingsFile):
     documentObjects = generateDocumentObjects(result)
     output = extractTop10(documentObjects)
 
-    return " ".join([str(document) for document in output])
+    return [document.docID for document in output]
 
 def normaliseWeight(weight, vectorLength):
     """

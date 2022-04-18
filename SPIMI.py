@@ -58,8 +58,7 @@ def createPositionalDict(tokenStream):
         term = trio[0]
 
         if term in positionalDict:
-            lengthOfPositionalIndex = len(positionalDict[term])
-            prevIndex = positionalDict[term][lengthOfPositionalIndex - 1]
+            prevIndex = sum(positionalDict[term])
             indexDiff = index - prevIndex
             positionalDict[term].append(indexDiff)
 

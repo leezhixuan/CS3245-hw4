@@ -133,10 +133,17 @@ def isPhraseInTwoPositionalList(positionalList1, positionalList2):
     """
     marker1 = 0
     marker2 = 0
+    position_1 = 0 # with postings compression
+    position_2 = 0 # with postings compression
 
     while (marker1 < len(positionalList1)) and (marker2 < len(positionalList2)):
-        position_1 = positionalList1[marker1]
-        position_2 = positionalList2[marker2]
+        # with postings compression
+        position_1 += positionalList1[marker1]
+        position_2 += positionalList2[marker2]
+
+        # without postings compression
+        # position_1 = positionalList1[marker1]
+        # position_2 = positionalList2[marker2]
 
         if position_1 + 1 == position_2:
             return True
@@ -160,11 +167,20 @@ def isPhraseInThreePositionalList(positionalList1, positionalList2, positionalLi
     marker1 = 0
     marker2 = 0
     marker3 = 0
+    position_1 = 0 # with postings compression
+    position_2 = 0 # with postings compression
+    position_3 = 0 # with postings compression
 
     while (marker1 < len(positionalList1)) and (marker2 < len(positionalList2)) and (marker3 < len(positionalList3)):
-        position_1 = positionalList1[marker1]
-        position_2 = positionalList2[marker2]
-        position_3 = positionalList3[marker3]
+        # with postings compression
+        position_1 += positionalList1[marker1]
+        position_2 += positionalList2[marker2]
+        position_3 += positionalList3[marker3]
+
+        # without postings compression
+        # position_1 = positionalList1[marker1]
+        # position_2 = positionalList2[marker2]
+        # position_3 = positionalList3[marker3]
 
         if (position_1 + 1 == position_2) and (position_2 + 1 == position_3):
             return True

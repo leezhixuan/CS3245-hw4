@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 import csv
-import regex
 import string
 import shutil
 import nltk
@@ -10,6 +9,7 @@ import getopt
 import os
 import pickle
 import math
+import regex
 from tqdm import tqdm
 
 
@@ -30,7 +30,7 @@ def build_index(in_dir, out_dict, out_postings):
 
     tempFile = 'temp.txt'
     workingDirectory = "workingDirectory/"
-    limit = 10000 # max number of docs to be processed at any 1 time.
+    limit = 8096 # max number of docs to be processed at any 1 time. production = 10000, testing = 20
     result = TermDictionary(out_dict)
 
     # set up temp directory for SPIMI process
@@ -55,10 +55,11 @@ def build_index(in_dir, out_dict, out_postings):
         except OverflowError:
             maxInt = int(maxInt / 10)
 
+    # totalCount = 0 # testing code
     with open(input_directory, newline='', encoding='UTF-8') as f:
         reader = csv.reader(f)
 
-        for row, col in tqdm(enumerate(reader)):
+        for row, col in tqdm(enumerate(reader)): # no. of iterations = no. of documents to process
             if row == 0:
                 continue # skips row 0 (to avoid procesing field names)
 
@@ -68,6 +69,10 @@ def build_index(in_dir, out_dict, out_postings):
             docLengths[docID] = len(tokenStream)
             tokenStreamBatch.append((int(docID), tokenStream))
             count += 1
+            # totalCount += 1 # testing code
+
+            # if totalCount == 55: # testing code
+            #     break
 
             if count == limit: # no. of docs == limit
                 outputPostingsFile = workingDirectory + 'tempPostingFile' + str(fileID) + '_stage' + str(stageOfMerge) + '.txt'
@@ -108,13 +113,13 @@ def generateProcessedTokenStream(content):
     countOfTerms = {}
 
     rawTokens = nltk.tokenize.word_tokenize(content) # an array of individual terms (consisting of words, standalone punctuations and numbers)
-    processedTokens_1 = list(filter(isNotPunctuation, rawTokens)) # no standalone punctuations
-    # print(tokenNoPunctuations)
-    tokensNoStopWords = [token for token in processedTokens_1 if token.lower() not in stopwords.words('english')] # remove all occurrences of stopwords
-    # print(tokensNoStopWords)
+    tokensNoStopWords = [removeNonAlphanumeric(term) for term in list(filter(isNotPunctuation, rawTokens))] # no standalone punctuations, this is tokensNoStopWords in testing, and processedTokens_1 in production
+    # tokensNoStopWords = [token for token in processedTokens_1 if token.lower() not in stopwords.words('english')] # remove all occurrences of stopwords
+    stemmedTerms = []
 
     for word in tokensNoStopWords:
         stemmedWord = stemmer.stem(word.lower())
+        stemmedTerms.append(stemmedWord)
 
         if stemmedWord in countOfTerms:
             countOfTerms[stemmedWord] += 1
@@ -122,10 +127,10 @@ def generateProcessedTokenStream(content):
         else:
             countOfTerms[stemmedWord] = 1
 
-    weightOfTerms = {term : 1 + math.log10(value) for term, value in countOfTerms.items()} # no idf
+    weightOfTerms = {term : 1 + math.log10(value) for term, value in countOfTerms.items()} # no idf, deals with unique terms only
     lengthOfDocVector = math.sqrt(sum([count**2 for count in weightOfTerms.values()]))
 
-    output = [(term, weight, lengthOfDocVector) for term, weight in weightOfTerms.items()] # all terms in a particular document, and its associated term weight, and length of vector
+    output = [(term, weightOfTerms[term], lengthOfDocVector) for term in stemmedTerms] # all terms in a particular document, and its associated term weight, and length of vector
 
     return output  # returns a list of processed terms in the form of [(term1, weight, docVectorLength), (term2, weight, docVectorLength), ...]
 
@@ -135,6 +140,20 @@ def isNotPunctuation(token):
         return False
     
     return True
+
+
+def isNumeric(string):
+    if regex.match(r'[0-9]+[^0-9][0-9]+', string):
+        return True
+    else:
+        return False
+
+
+def removeNonAlphanumeric(string):
+    if not isNumeric(string):
+        return regex.sub(r'[^a-zA-Z0-9\_\-\p{Sc}]', ' ', string)
+    else:
+        return string
 
 
 def convertToPostingNodes(out_postings, file, termDictionary):

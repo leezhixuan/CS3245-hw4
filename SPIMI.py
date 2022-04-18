@@ -9,6 +9,7 @@ def SPIMIInvert(tokenStreamBatch, outputFile, dictFile):
     This function is akin to the one we've seen the in textbook. Each call to
     SPIMIInvert writes a block to disk.
     """
+    # this processes the terms in each document individually.
     # tokenStreamBatch: [(docID, [(term1, weight, docVectorLength), (term2, weight, docVectorLength), ...]), (docID2, [(term1, weight, docVectorLength), (term2, weight, docVectorLength), ...]]
     tempDict = {} # {term : {docID : [termFreq, weight, vectorLength, positionalList], docID2 : [termFreq, weight, vectorLength2, positionalList], ...}, term2 : ...}
     termDict = TermDictionary(dictFile)
@@ -47,6 +48,7 @@ def SPIMIInvert(tokenStreamBatch, outputFile, dictFile):
 
 
 def createPositionalDict(tokenStream):
+    # tokenStream is a list of terms with their relevant data
     # facilitates phrasal queries.
     # creates a dictionary of {term: [index1, index2, ...], term2: [index1, index2, ...], ...} for content from a particular document.
     index = 0
@@ -54,13 +56,17 @@ def createPositionalDict(tokenStream):
 
     for trio in tokenStream:
         term = trio[0]
+
         if term in positionalDict:
-            positionalDict[term].append(index)
-            index += 1
+            lengthOfPositionalIndex = len(positionalDict[term])
+            prevIndex = positionalDict[term][lengthOfPositionalIndex - 1]
+            indexDiff = index - prevIndex
+            positionalDict[term].append(indexDiff)
 
         else: # term not in positionalDict yet
             positionalDict[term] = [index]
-            index += 1
+
+        index += 1
 
     return positionalDict
 
@@ -131,9 +137,12 @@ def mergePostingsDict(dict1, dict2):
     result = {}
 
     for docID in unionOfDocIDs:
+        posList = getPositionalList(dict1, docID)
+        posList.extend(getPositionalList(dict2, docID))
         result[docID] = [getTermFrequency(dict1, docID) + getTermFrequency(dict2, docID), 
-            max(getTermWeight(dict1, docID), getTermWeight(dict2, docID)), max(getVectorDocLength(dict1, docID), getVectorDocLength(dict2, docID),
-            getPositionalList(dict1, docID).append(getPositionalList, docID))]
+            max(getTermWeight(dict1, docID), getTermWeight(dict2, docID)), 
+            max(getVectorDocLength(dict1, docID), getVectorDocLength(dict2, docID)),
+            posList]
             # max() is used because of the way we process files; we process documents fully, and 1024 at a time. Thus, no 2 dictionary file will contain the same
             # docIDs. max() is used because we don't know which of the 2 dictionary contains a particular docID.
             # This is true for positional lists as well.

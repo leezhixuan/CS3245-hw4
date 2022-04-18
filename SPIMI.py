@@ -62,11 +62,6 @@ def createPositionalDict(tokenStream):
             indexDiff = index - prevIndex
             positionalDict[term].append(indexDiff)
 
-            if term == "get":
-                print(f'previous index {prevIndex}')
-                print(f'current index {index}')
-                print(f'index diff {indexDiff}')
-
         else: # term not in positionalDict yet
             positionalDict[term] = [index]
             

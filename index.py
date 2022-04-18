@@ -30,7 +30,7 @@ def build_index(in_dir, out_dict, out_postings):
 
     tempFile = 'temp.txt'
     workingDirectory = "workingDirectory/"
-    limit = 20 # max number of docs to be processed at any 1 time. production = 8096, testing = 20
+    limit = 8096 # max number of docs to be processed at any 1 time. production = 8096, testing = 20
     result = TermDictionary(out_dict)
 
     # set up temp directory for SPIMI process
@@ -55,7 +55,7 @@ def build_index(in_dir, out_dict, out_postings):
         except OverflowError:
             maxInt = int(maxInt / 10)
 
-    totalCount = 0 # testing code
+    # totalCount = 0 # testing code
     with open(input_directory, newline='', encoding='UTF-8') as f:
         reader = csv.reader(f)
 
@@ -71,10 +71,10 @@ def build_index(in_dir, out_dict, out_postings):
             docLengthsAndTopTerms[docID] = [len(tokenStream), topTerms]
             tokenStreamBatch.append((int(docID), tokenStream))
             count += 1
-            totalCount += 1 # testing code
+            # totalCount += 1 # testing code
 
-            if totalCount == 55: # testing code
-                break
+            # if totalCount == 55: # testing code
+            #     break
 
             if count == limit: # no. of docs == limit
                 outputPostingsFile = workingDirectory + 'tempPostingFile' + str(fileID) + '_stage' + str(stageOfMerge) + '.txt'
@@ -117,8 +117,7 @@ def generateProcessedTokenStream(content):
     rawTokens = nltk.tokenize.word_tokenize(content) # an array of individual terms (consisting of words, standalone punctuations and numbers)
     legitTokens = [removeNonAlphanumeric(term) for term in list(filter(isNotPunctuation, rawTokens))] # no standalone punctuations, this is tokensNoStopWords in testing, and processedTokens_1 in production
     stopWordSet = set(stopwords.words('english'))
-    tokensNoStopWords = [token for token in legitTokens if token.lower() not in stopWordSet]
-    # tokensNoStopWords = [token for token in processedTokens_1 if token.lower() not in stopwords.words('english')] # remove all occurrences of stopwords
+    tokensNoStopWords = [token for token in legitTokens if token.lower() not in stopWordSet] # remove all occurrences of stopwords
     stemmedTerms = []
 
     for word in tokensNoStopWords:

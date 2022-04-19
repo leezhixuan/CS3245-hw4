@@ -64,7 +64,7 @@ def createPositionalDict(tokenStream):
 
         else: # term not in positionalDict yet
             positionalDict[term] = [index]
-
+            
         index += 1
 
     return positionalDict

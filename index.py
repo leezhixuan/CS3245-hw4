@@ -30,7 +30,7 @@ def build_index(in_dir, out_dict, out_postings):
 
     tempFile = 'temp.txt'
     workingDirectory = "workingDirectory/"
-    limit = 8096 # max number of docs to be processed at any 1 time. production = 10000, testing = 20
+    limit = 8096 # max number of docs to be processed at any 1 time. production = 8096, testing = 20
     result = TermDictionary(out_dict)
 
     # set up temp directory for SPIMI process
@@ -45,8 +45,8 @@ def build_index(in_dir, out_dict, out_postings):
     stageOfMerge = 0
     count = 0
     tokenStreamBatch = []
-    docLengths = {} # {docID : length, docID2 : length, ...}, to be added dumped into the postings file with its pointer stored in the final termDictionary file
-    
+    docLengthsAndTopTerms = {} # {docID : [length, [term1, term2], docID2 : [length, [term3, term4], ...}, to be added dumped into the postings file with its pointer stored in the final termDictionary file
+
     maxInt = sys.maxsize
     while True:
         try:
@@ -65,8 +65,10 @@ def build_index(in_dir, out_dict, out_postings):
 
             docID, title, content, date, court = col
             # print(docID)
-            tokenStream = generateProcessedTokenStream(content)
-            docLengths[docID] = len(tokenStream)
+            tokenStreamAndTopTerms = generateProcessedTokenStream(content)
+            tokenStream = tokenStreamAndTopTerms[0]
+            topTerms = tokenStreamAndTopTerms[1]
+            docLengthsAndTopTerms[docID] = [len(tokenStream), topTerms]
             tokenStreamBatch.append((int(docID), tokenStream))
             count += 1
             # totalCount += 1 # testing code
@@ -96,11 +98,11 @@ def build_index(in_dir, out_dict, out_postings):
 
         convertToPostingNodes(out_postings, tempFile, result) # add skip pointers to posting list and save them to postings.txt
         
-        # add docLengths into output postings file, and store a pointer in the resultant dictionary.
+        # add docLengthsAndTopTerms into output postings file, and store a pointer in the resultant dictionary.
         with open(out_postings, 'ab') as f: # append to postings file
             pointer = f.tell()
-            result.addPointerToDocLengths(pointer)
-            pickle.dump(docLengths, f)
+            result.addPointerToDocLengthsAndTopTerms(pointer)
+            pickle.dump(docLengthsAndTopTerms, f)
 
     result.save()
 
@@ -113,8 +115,9 @@ def generateProcessedTokenStream(content):
     countOfTerms = {}
 
     rawTokens = nltk.tokenize.word_tokenize(content) # an array of individual terms (consisting of words, standalone punctuations and numbers)
-    tokensNoStopWords = [removeNonAlphanumeric(term) for term in list(filter(isNotPunctuation, rawTokens))] # no standalone punctuations, this is tokensNoStopWords in testing, and processedTokens_1 in production
-    # tokensNoStopWords = [token for token in processedTokens_1 if token.lower() not in stopwords.words('english')] # remove all occurrences of stopwords
+    legitTokens = [removeNonAlphanumeric(term) for term in list(filter(isNotPunctuation, rawTokens))] # no standalone punctuations, this is tokensNoStopWords in testing, and processedTokens_1 in production
+    stopWordSet = set(stopwords.words('english'))
+    tokensNoStopWords = [token for token in legitTokens if token.lower() not in stopWordSet] # remove all occurrences of stopwords
     stemmedTerms = []
 
     for word in tokensNoStopWords:
@@ -128,11 +131,12 @@ def generateProcessedTokenStream(content):
             countOfTerms[stemmedWord] = 1
 
     weightOfTerms = {term : 1 + math.log10(value) for term, value in countOfTerms.items()} # no idf, deals with unique terms only
+    top2Terms = sorted(weightOfTerms, key=weightOfTerms.get, reverse=True)[:2] # get a list containing the top 2 "heaviest" (most important) terms from the document.
     lengthOfDocVector = math.sqrt(sum([count**2 for count in weightOfTerms.values()]))
 
     output = [(term, weightOfTerms[term], lengthOfDocVector) for term in stemmedTerms] # all terms in a particular document, and its associated term weight, and length of vector
 
-    return output  # returns a list of processed terms in the form of [(term1, weight, docVectorLength), (term2, weight, docVectorLength), ...]
+    return (output, top2Terms)  # returns a list of processed terms in the form of [(term1, weight, docVectorLength), (term2, weight, docVectorLength), ...], and a list of 2 most heavily weighted terms.
 
 
 def isNotPunctuation(token):

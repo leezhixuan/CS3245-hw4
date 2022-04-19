@@ -10,7 +10,7 @@ class TermDictionary(object):
 
     def __init__(self, storageLocation):
         # In the form of {term: [docFrequency, pointer], term2: [docFrequency, pointer], ..., termN: [docFrequency, pointer]}
-        # In the form of {term: [docFrequency, pointer], term2: [docFrequency, pointer], ..., "d0cum3ntL3ngth": pointer} (after indexing)
+        # In the form of {term: [docFrequency, pointer], term2: [docFrequency, pointer], ..., "d0cum3ntL3ngth4ndT0pT3rm5": pointer} (after indexing)
         self.termInformation = {} 
         self.storageLocation = storageLocation
 
@@ -78,13 +78,13 @@ class TermDictionary(object):
             return 0
             
     
-    def addPointerToDocLengths(self, pointer):
+    def addPointerToDocLengthsAndTopTerms(self, pointer):
         """
         Adds a pointer to a dictionary where key = docID, value = length of document with ID = docID.
         """
-        self.termInformation["d0cum3ntL3ngth"] = pointer
+        self.termInformation["d0cum3ntL3ngth4ndT0pT3rm5"] = pointer
 
     
-    def getPointerToDocLengths(self):
-        return self.termInformation["d0cum3ntL3ngth"]
+    def getPointerToDocLengthsAndTopTerms(self):
+        return self.termInformation["d0cum3ntL3ngth4ndT0pT3rm5"]
     

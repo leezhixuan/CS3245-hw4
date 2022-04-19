@@ -62,6 +62,36 @@ The Document class helps to facilitate ranking. As such, we convert every docume
 of Document objects into heapq.extract10(). Then, we filter away any document with a score = 0 that somehow managed to make it into the top 10.
 Thereafter, we write the top 10 results (if any) into the output file, each on a new line.
 
+= Bonus =
+
+- Query Expansion -
+
+Given a query string, we tokenize them into individual query terms. Then, we perform part-of-speech tagging on each one of them and convert
+those tags into their WordNet equivalent ones. At the end, we retrieve their synsets using wordnet.synsets().
+
+We remove duplicates from the retrieved synsets. 2 synonyms are deemed to be duplicates if they are spelt the same way, regardless of semantics.
+
+Another concern is that there may be query terms that have plenty of synonyms. As such, we look to restrict the number of synonyms we add to 
+the original query string so that querying does not become a time-intensive process.
+
+Here, we take only the top 3 synoyms from each query term. To rank synonyms, we turn to synset1.pathsimilarity(synset2) to generate a score.
+pathsimilarity() returns a score denoting how similar 2 word senses are based on the shortest path that connects the senses in the this is-a 
+(hypernym/hypnoym) taxonomy. The score is in the range of 0 to 1. A score of 1 represents identity.
+
+The top 3 synonyms belonging to each query term is then added to the query string for another round of querying.
+
+- Pseudo relevance feedback -
+
+After a round of querying using the original query string that was given by the user, we obtain a list of docID as results. We take treat the 
+top 3 highest ranking docIDs to be relevant documents.
+
+As it is computationally expensive to calculate the centroid of these relevant, we make use of the important terms associated to each docID
+that we have stored during indexing. For each of the top 3 most relevant docIDs, we retrieve their important terms and add them into the query 
+string to form a new query string. We then do another round of querying with this new query string.
+
+This is somewhat similar to query expansion. The main difference is that the "expansion" here comes from the first round of query results rather
+than from the synonyms (from wordnet) added. The words added may or may not be synonyms of the query terms in the original query string.
+
 
 == Files included with this submission ==
 

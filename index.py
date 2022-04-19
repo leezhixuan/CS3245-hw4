@@ -30,7 +30,7 @@ def build_index(in_dir, out_dict, out_postings):
 
     tempFile = 'temp.txt'
     workingDirectory = "workingDirectory/"
-    limit = 8096 # max number of docs to be processed at any 1 time. production = 8096, testing = 20
+    limit = 10 # max number of docs to be processed at any 1 time. production = 8096, testing = 20
     result = TermDictionary(out_dict)
 
     # set up temp directory for SPIMI process
@@ -46,7 +46,8 @@ def build_index(in_dir, out_dict, out_postings):
     count = 0
     tokenStreamBatch = []
     docLengthsAndTopTerms = {} # {docID : [length, [term1, term2], docID2 : [length, [term3, term4], ...}, to be added dumped into the postings file with its pointer stored in the final termDictionary file
-
+    docIDSet = set()
+    
     maxInt = sys.maxsize
     while True:
         try:
@@ -55,7 +56,7 @@ def build_index(in_dir, out_dict, out_postings):
         except OverflowError:
             maxInt = int(maxInt / 10)
 
-    # totalCount = 0 # testing code
+    totalCount = 0 # testing code
     with open(input_directory, newline='', encoding='UTF-8') as f:
         reader = csv.reader(f)
 
@@ -64,17 +65,21 @@ def build_index(in_dir, out_dict, out_postings):
                 continue # skips row 0 (to avoid procesing field names)
 
             docID, title, content, date, court = col
-            # print(docID)
+
+            if (int(docID)) in docIDSet: # deals with duplicate docIDs
+                continue
+
+            docIDSet.add(int(docID))
             tokenStreamAndTopTerms = generateProcessedTokenStream(content)
             tokenStream = tokenStreamAndTopTerms[0]
             topTerms = tokenStreamAndTopTerms[1]
             docLengthsAndTopTerms[docID] = [len(tokenStream), topTerms]
             tokenStreamBatch.append((int(docID), tokenStream))
             count += 1
-            # totalCount += 1 # testing code
+            totalCount += 1 # testing code
 
-            # if totalCount == 55: # testing code
-            #     break
+            if totalCount == 55: # testing code
+                break
 
             if count == limit: # no. of docs == limit
                 outputPostingsFile = workingDirectory + 'tempPostingFile' + str(fileID) + '_stage' + str(stageOfMerge) + '.txt'

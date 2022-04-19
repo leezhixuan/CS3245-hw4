@@ -51,21 +51,19 @@ def createPositionalDict(tokenStream):
     # tokenStream is a list of terms with their relevant data
     # facilitates phrasal queries.
     # creates a dictionary of {term: [index1, index2, ...], term2: [index1, index2, ...], ...} for content from a particular document.
-    index = 0
     positionalDict = {}
 
-    for trio in tokenStream:
+    for i in range(len(tokenStream)): # i starts from 0
+        trio = tokenStream[i]
         term = trio[0]
-
-        if term in positionalDict:
+    
+        if term in positionalDict: # gap encoding
             prevIndex = sum(positionalDict[term])
-            indexDiff = index - prevIndex
+            indexDiff = i - prevIndex
             positionalDict[term].append(indexDiff)
 
         else: # term not in positionalDict yet
-            positionalDict[term] = [index]
-            
-        index += 1
+            positionalDict[term] = [i]
 
     return positionalDict
 
@@ -136,15 +134,19 @@ def mergePostingsDict(dict1, dict2):
     result = {}
 
     for docID in unionOfDocIDs:
-        posList = getPositionalList(dict1, docID)
-        posList.extend(getPositionalList(dict2, docID))
-        result[docID] = [getTermFrequency(dict1, docID) + getTermFrequency(dict2, docID), 
-            max(getTermWeight(dict1, docID), getTermWeight(dict2, docID)), 
-            max(getVectorDocLength(dict1, docID), getVectorDocLength(dict2, docID)),
-            posList]
-            # max() is used because of the way we process files; we process documents fully, and 1024 at a time. Thus, no 2 dictionary file will contain the same
-            # docIDs. max() is used because we don't know which of the 2 dictionary contains a particular docID.
+        if docID in docIDs1:
+            posList = getPositionalList(dict1, docID)
+            result[docID] = [getTermFrequency(dict1, docID), getTermWeight(dict1, docID), 
+                getVectorDocLength(dict1, docID), posList]
+        
+        else:
+            posList = getPositionalList(dict2, docID) #issue
+            result[docID] = [getTermFrequency(dict2, docID), getTermWeight(dict2, docID), 
+                getVectorDocLength(dict2, docID), posList]
+            # we process documents fully, and 8096 at a time. Thus, no 2 dictionary file will contain the same
+            # docIDs. As such, we are able to take data from only 1 of the dictionary. This prevents duplication.
             # This is true for positional lists as well.
+
 
     return result
         

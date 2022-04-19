@@ -30,7 +30,7 @@ def build_index(in_dir, out_dict, out_postings):
 
     tempFile = 'temp.txt'
     workingDirectory = "workingDirectory/"
-    limit = 10 # max number of docs to be processed at any 1 time. production = 8096, testing = 20
+    limit = 8096 # max number of docs to be processed at any 1 time. production = 8096, testing = 20
     result = TermDictionary(out_dict)
 
     # set up temp directory for SPIMI process
@@ -56,7 +56,7 @@ def build_index(in_dir, out_dict, out_postings):
         except OverflowError:
             maxInt = int(maxInt / 10)
 
-    totalCount = 0 # testing code
+    # totalCount = 0 # testing code
     with open(input_directory, newline='', encoding='UTF-8') as f:
         reader = csv.reader(f)
 
@@ -76,10 +76,10 @@ def build_index(in_dir, out_dict, out_postings):
             docLengthsAndTopTerms[docID] = [len(tokenStream), topTerms]
             tokenStreamBatch.append((int(docID), tokenStream))
             count += 1
-            totalCount += 1 # testing code
+            # totalCount += 1 # testing code
 
-            if totalCount == 55: # testing code
-                break
+            # if totalCount == 55: # testing code
+            #     break
 
             if count == limit: # no. of docs == limit
                 outputPostingsFile = workingDirectory + 'tempPostingFile' + str(fileID) + '_stage' + str(stageOfMerge) + '.txt'

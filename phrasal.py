@@ -1,6 +1,6 @@
 import nltk
 import pickle
-from postings_util import getDocID, getTermFrequency, hasSkipPointer, getSkipPointer, getTermWeight, getDocVectorLength, getPositionalIndexes
+from postings_util import getDocID
 
 def retrievePostingsList(file, pointer):
     """

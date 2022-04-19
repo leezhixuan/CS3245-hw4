@@ -5,7 +5,7 @@ import pickle
 
 from collections import Counter
 from Document import Document
-from postings_util import getDocID, getTermFrequency, hasSkipPointer, getSkipPointer, getTermWeight, getDocVectorLength, getPositionalIndexes
+from postings_util import getDocID, getTermWeight, getDocVectorLength
 
 def retrievePostingsList(file, pointer):
     """

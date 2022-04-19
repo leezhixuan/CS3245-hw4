@@ -1,16 +1,11 @@
-from xmlrpc.client import boolean
-from cv2 import split
 import nltk
 import sys
 import getopt
 import pickle
-import math
-import heapq
 from SPIMI import getTermFrequency
 
 from TermDictionary import TermDictionary
 from Operand import Operand
-from Node import Node
 from phrasal import processPharsalQuery
 from free_text import cosineScores
 

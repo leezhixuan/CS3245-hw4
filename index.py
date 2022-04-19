@@ -14,7 +14,6 @@ from tqdm import tqdm
 
 
 from TermDictionary import TermDictionary
-from Node import Node
 from SPIMI import SPIMIInvert, binaryMerge
 
 def usage():

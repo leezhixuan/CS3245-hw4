@@ -52,7 +52,7 @@ def cosineScores(query, dictionary, postingsFile):
     # documents and their weights are now settled.
 
     documentObjects = generateDocumentObjects(result)
-    output = extractTop10(documentObjects)
+    output = extractPositiveDocuments(documentObjects)
 
     return [document.docID for document in output]
 
@@ -99,3 +99,9 @@ def extractTop10(documentObjects):
     temp = heapq.nlargest(10, documentObjects) # a list of 10 highest scoring document
 
     return filter(lambda document : (document.getWeight() > 0), temp)
+
+def extractPositiveDocuments(documentObjects):
+    """
+    Takes in a list of Document objects and extracts all documents with positive score.
+    """
+    return filter(lambda document : (document.getWeight() > 0), documentObjects)

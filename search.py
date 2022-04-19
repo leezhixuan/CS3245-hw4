@@ -30,6 +30,7 @@ def run_search(dict_file, postings_file, queries_file, results_file):
             if query.strip():
                 result = processQuery(query, termDict, postings_file)
                 if result != None and len(result) > 0:
+                    print(len(result))
                     result = " ".join(map(str, list(result)))
                     allResults.append(result)
 
@@ -81,6 +82,10 @@ def booleanQuery(query, dictFile, postings_file):
             op2 = operants.pop()
             result = evalAND(op1, op2, dictFile, postings_file)
             operants.append(result)
+    result = operants.pop().getResult()
+    if result is None or len(result) == 0:
+        query = query.replace('AND', '')
+        return freeTextQuery(query, dictFile, postings_file)
     return operants.pop().getResult()
 
 
@@ -91,6 +96,8 @@ def freeTextQuery(query, dictFile, postings_file):
 def phrasalQuery(query, dictFile, postings_file):
     query = splitQuery(query)[0]
     result = processPharsalQuery(query, dictFile, postings_file)
+    if result is None or len(result) == 0:
+        return freeTextQuery(query, dictFile, postings_file)
     return result
     
 

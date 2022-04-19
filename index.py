@@ -30,7 +30,7 @@ def build_index(in_dir, out_dict, out_postings):
 
     tempFile = 'temp.txt'
     workingDirectory = "workingDirectory/"
-    limit = 8096 # max number of docs to be processed at any 1 time. production = 8096, testing = 20
+    limit = 10 # max number of docs to be processed at any 1 time. production = 8096, testing = 20
     result = TermDictionary(out_dict)
 
     # set up temp directory for SPIMI process
@@ -56,7 +56,7 @@ def build_index(in_dir, out_dict, out_postings):
         except OverflowError:
             maxInt = int(maxInt / 10)
 
-    # totalCount = 0 # testing code
+    totalCount = 0 # testing code
     with open(input_directory, newline='', encoding='UTF-8') as f:
         reader = csv.reader(f)
 
@@ -76,10 +76,10 @@ def build_index(in_dir, out_dict, out_postings):
             docLengthsAndTopTerms[docID] = [len(tokenStream), topTerms]
             tokenStreamBatch.append((int(docID), tokenStream))
             count += 1
-            # totalCount += 1 # testing code
+            totalCount += 1 # testing code
 
-            # if totalCount == 55: # testing code
-            #     break
+            if totalCount == 55: # testing code
+                break
 
             if count == limit: # no. of docs == limit
                 outputPostingsFile = workingDirectory + 'tempPostingFile' + str(fileID) + '_stage' + str(stageOfMerge) + '.txt'
@@ -181,7 +181,8 @@ def convertToPostingNodes(out_postings, file, termDictionary):
                 ref.seek(pointer)
                 docIDsDict = pickle.load(ref) # loads a dictionary of docIDs
 
-                postingsNodes = [Node(docID, docIDsDict[docID][0], docIDsDict[docID][1], docIDsDict[docID][2], docIDsDict[docID][3]) for docID in docIDsDict] # create Nodes
+                # postingsNodes = [Node(docID, docIDsDict[docID][0], docIDsDict[docID][1], docIDsDict[docID][2], docIDsDict[docID][3]) for docID in docIDsDict] # create Nodes
+                postingsNodes = [(docID, docIDsDict[docID][0], docIDsDict[docID][1], docIDsDict[docID][2], docIDsDict[docID][3]) for docID in docIDsDict] # create 5-tuples as "Nodes" to save space
                 insertSkipPointers(postingsNodes, len(postingsNodes))
                 newPointer = output.tell() # new pointer location
                 pickle.dump(postingsNodes, output)
@@ -196,12 +197,18 @@ def insertSkipPointers(nodeArray, length):
     skipInterval = int(math.sqrt(length))
     endOfIndex = length - 1
     currentIndex = 0
+    insertionIndex = 2
 
     for node in nodeArray:
+        skipPointer = (0,)
         if (currentIndex % skipInterval == 0 and currentIndex + skipInterval <= endOfIndex):
             # makes sure that it is time for a skip pointer to be inserted and it is not inserted into
             # a node that will facilitate a skip past the last node.
-            node.addSkipPointer(skipInterval)
+            
+            # node.addSkipPointer(skipInterval)
+            skipPointer = (skipInterval,)
+
+        nodeArray[currentIndex] = node[ :insertionIndex] + skipPointer + node[insertionIndex: ]
 
         currentIndex += 1
 

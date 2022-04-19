@@ -2,14 +2,12 @@ import nltk
 import sys
 import getopt
 import pickle
-from SPIMI import getTermFrequency
 
 from TermDictionary import TermDictionary
 from Operand import Operand
 from phrasal import processPharsalQuery
 from free_text import cosineScores
-
-TOP_K = 10
+from postings_util import getDocID, hasSkipPointer, getSkipPointer
 
 def usage():
     print("usage: " + sys.argv[0] + " -d dictionary-file -p postings-file -q file-of-queries -o output-file-of-results")
@@ -214,21 +212,21 @@ def evalAND_terms(term1, term2, dictFile, postingsFile):
     # else, pointer1 and pointer2 are not empty lists
 
     while pl1 != [] and pl2 != []:
-        if Node.getDocID(pl1[0]) == Node.getDocID(pl2[0]):  # Intersection, add to results
-            result.add(Node.getDocID(pl1[0]))
+        if getDocID(pl1[0]) == getDocID(pl2[0]):  # Intersection, add to results
+            result.add(getDocID(pl1[0]))
             pl1, pl2 = pl1[1:], pl2[1:]
         else:
             # Advance list with smaller docID
-            if Node.getDocID(pl1[0]) < Node.getDocID(pl2[0]):
+            if getDocID(pl1[0]) < getDocID(pl2[0]):
                 # Check if skip pointers exist, and use if feasible
-                if Node.hasSkip(pl1[0]) and Node.getDocID(pl1[pl1[0].skipPointer]) < Node.getDocID(pl2[0]):
-                    pl1 = pl1[pl1[0].skipPointer:]
+                if hasSkipPointer(pl1[0]) and getDocID(pl1[getSkipPointer(pl1[0])]) < getDocID(pl2[0]):
+                    pl1 = pl1[getSkipPointer(pl1[0]):]
                 else:
                     pl1 = pl1[1:]
             else:
                 # Check if skip pointers exist, and use if feasible
-                if Node.hasSkip(pl2[0]) and Node.getDocID(pl2[pl2[0].skipPointer]) < Node.getDocID(pl1[0]):
-                    pl2 = pl2[pl2[0].skipPointer:]
+                if hasSkipPointer(pl2[0]) and getDocID(pl2[getSkipPointer(pl2[0])]) < getDocID(pl1[0]):
+                    pl2 = pl2[getSkipPointer(pl2[0]):]
                 else:
                     pl2 = pl2[1:]
 
@@ -250,15 +248,15 @@ def evalAND_term_result(term, res, dictFile, postingsFile):
     # else, pl and res are not empty lists
 
     while pl != [] and res != []:
-        if Node.getDocID(pl[0]) == res[0]:  # Intersection, add to results
+        if getDocID(pl[0]) == res[0]:  # Intersection, add to results
             result.add(res[0])
             pl, res = pl[1:], res[1:]
         else:
             # Advance list with smaller docID
-            if Node.getDocID(pl[0]) < res[0]:
+            if getDocID(pl[0]) < res[0]:
                 # Check if skip pointers exist, and use if feasible
-                if Node.hasSkip(pl[0]) and Node.getDocID(pl[pl[0].skipPointer]) < res[0]:
-                    pl = pl[pl[0].skipPointer:]
+                if hasSkipPointer(pl[0]) and getDocID(pl[getSkipPointer(pl[0])]) < res[0]:
+                    pl = pl[getSkipPointer(pl[0]):]
                 else:
                     pl = pl[1:]
             else:

@@ -1,6 +1,6 @@
 import nltk
 import pickle
-from postings_util import getDocID
+from postings_util import getDocID, getPositionalIndexes
 
 def retrievePostingsList(file, pointer):
     """
@@ -67,9 +67,8 @@ def twoTermPhrasalHelper(postings1, postings2):
         docID_2 = getDocID(postings2[marker2])
 
         if docID_1 == docID_2:
-            positionalList1 = postings1[marker1].getPositionalList()
-            positionalList2 = postings2[marker2].getPositionalList()
-            print(docID_1)
+            positionalList1 = getPositionalIndexes(postings1[marker1])
+            positionalList2 = getPositionalIndexes(postings2[marker2])
 
             if isPhraseInTwoPositionalList(positionalList1, positionalList2):
                 result.append(docID_1)
@@ -102,9 +101,9 @@ def threeTermPhrasalHelper(postings1, postings2, postings3):
         docID_3 = getDocID(postings3[marker3])
 
         if docID_1 == docID_2 and docID_2 == docID_3:
-            positionalList1 = postings1[marker1].getPositionalList()
-            positionalList2 = postings2[marker2].getPositionalList()
-            positionalList3 = postings3[marker3].getPositionalList()
+            positionalList1 = getPositionalIndexes(postings1[marker1])
+            positionalList2 = getPositionalIndexes(postings2[marker2])
+            positionalList3 = getPositionalIndexes(postings3[marker3])
 
             if (isPhraseInThreePositionalList(positionalList1, positionalList2, positionalList3)):
                 result.append(docID_1)

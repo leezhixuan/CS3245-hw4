@@ -181,7 +181,8 @@ def convertToPostingNodes(out_postings, file, termDictionary):
                 ref.seek(pointer)
                 docIDsDict = pickle.load(ref) # loads a dictionary of docIDs
 
-                postingsNodes = [Node(docID, docIDsDict[docID][0], docIDsDict[docID][1], docIDsDict[docID][2], docIDsDict[docID][3]) for docID in docIDsDict] # create Nodes
+                # postingsNodes = [Node(docID, docIDsDict[docID][0], docIDsDict[docID][1], docIDsDict[docID][2], docIDsDict[docID][3]) for docID in docIDsDict] # create Nodes
+                postingsNodes = [(docID, docIDsDict[docID][0], docIDsDict[docID][1], docIDsDict[docID][2], docIDsDict[docID][3]) for docID in docIDsDict] # create 5-tuples as "Nodes" to save space
                 insertSkipPointers(postingsNodes, len(postingsNodes))
                 newPointer = output.tell() # new pointer location
                 pickle.dump(postingsNodes, output)
@@ -196,12 +197,18 @@ def insertSkipPointers(nodeArray, length):
     skipInterval = int(math.sqrt(length))
     endOfIndex = length - 1
     currentIndex = 0
+    insertionIndex = 2
 
     for node in nodeArray:
+        skipPointer = (0,)
         if (currentIndex % skipInterval == 0 and currentIndex + skipInterval <= endOfIndex):
             # makes sure that it is time for a skip pointer to be inserted and it is not inserted into
             # a node that will facilitate a skip past the last node.
-            node.addSkipPointer(skipInterval)
+            
+            # node.addSkipPointer(skipInterval)
+            skipPointer = (skipInterval,)
+
+        nodeArray[currentIndex] = node[ :insertionIndex] + skipPointer + node[insertionIndex: ]
 
         currentIndex += 1
 

@@ -5,6 +5,7 @@ import pickle
 
 from collections import Counter
 from Document import Document
+from postings_util import getDocID, getTermFrequency, hasSkipPointer, getSkipPointer, getTermWeight, getDocVectorLength, getPositionalIndexes
 
 def retrievePostingsList(file, pointer):
     """
@@ -26,8 +27,8 @@ def cosineScores(query, dictionary, postingsFile):
     Implementation of CosineScore(q) from the textbook.
     """
     stemmer = nltk.stem.porter.PorterStemmer()
-    totalNumberOfDocs = len(retrievePostingsList(postingsFile, dictionary.getPointerToDocLengths()))
-    result = dict.fromkeys(retrievePostingsList(postingsFile, dictionary.getPointerToDocLengths()).keys(), 0) # in the form of {docID : 1, docID2 : 0.2, ...}
+    totalNumberOfDocs = len(retrievePostingsList(postingsFile, dictionary.getPointerToDocLengthsAndTopTerms()))
+    result = dict.fromkeys(retrievePostingsList(postingsFile, dictionary.getPointerToDocLengthsAndTopTerms()).keys(), 0) # in the form of {docID : 1, docID2 : 0.2, ...}
 
     queryTokens = [stemmer.stem(token.lower()) for token in query.split()]
     qTokenFrequency = Counter(queryTokens) # qTokenFrequency will be in the form of {"the": 2, "and" : 1} if the query is "the and the".
@@ -40,9 +41,9 @@ def cosineScores(query, dictionary, postingsFile):
         postings = retrievePostingsList(postingsFile, pointer) # in the form of (docID, TermFreq, skipPointer (to be discarded))
 
         for node in postings:
-            docID = node.getDocID()
-            termWeight = node.getTermWeight()
-            docVectorLength = node.getVectorDocLength()
+            docID = getDocID(node)
+            termWeight = getTermWeight(node)
+            docVectorLength = getDocVectorLength(node)
             if docID in result:
                 result[docID] += normaliseWeight(qTokenNormalisedWeights[term] * termWeight,  docVectorLength) # update with normalised score
             else:

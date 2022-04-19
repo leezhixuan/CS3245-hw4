@@ -1,5 +1,6 @@
 import nltk
 import pickle
+from postings_util import getDocID, getTermFrequency, hasSkipPointer, getSkipPointer, getTermWeight, getDocVectorLength, getPositionalIndexes
 
 def retrievePostingsList(file, pointer):
     """
@@ -27,7 +28,7 @@ def processPharsalQuery(query, termDict, postingsFile):
         pointer = termDict.getTermPointer(queryTerms[0])
         postings = retrievePostingsList(postingsFile, pointer)
 
-        return [node.getDocID() for node in postings]
+        return [getDocID(node) for node in postings]
 
     elif len(queryTerms) == 2:
         pointer1 = termDict.getTermPointer(queryTerms[0])
@@ -62,8 +63,8 @@ def twoTermPhrasalHelper(postings1, postings2):
     result = []
 
     while (marker1 < len(postings1)) and (marker2 < len(postings2)):
-        docID_1 = postings1[marker1].getDocID()
-        docID_2 = postings2[marker2].getDocID()
+        docID_1 = getDocID(postings1[marker1])
+        docID_2 = getDocID(postings2[marker2])
 
         if docID_1 == docID_2:
             positionalList1 = postings1[marker1].getPositionalList()
@@ -96,9 +97,9 @@ def threeTermPhrasalHelper(postings1, postings2, postings3):
     result = []
 
     while (marker1 < len(postings1)) and (marker2 < len(postings2)) and (marker3) < len(postings3):
-        docID_1 = postings1[marker1].getDocID()
-        docID_2 = postings2[marker2].getDocID()
-        docID_3 = postings3[marker3].getDocID()
+        docID_1 = getDocID(postings1[marker1])
+        docID_2 = getDocID(postings2[marker2])
+        docID_3 = getDocID(postings3[marker3])
 
         if docID_1 == docID_2 and docID_2 == docID_3:
             positionalList1 = postings1[marker1].getPositionalList()

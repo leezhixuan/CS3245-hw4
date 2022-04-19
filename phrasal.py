@@ -27,7 +27,7 @@ def processPharsalQuery(query, termDict, postingsFile):
         pointer = termDict.getTermPointer(queryTerms[0])
         postings = retrievePostingsList(postingsFile, pointer)
 
-        return [node[0] for node in postings]
+        return [node.getDocID() for node in postings]
 
     elif len(queryTerms) == 2:
         pointer1 = termDict.getTermPointer(queryTerms[0])
@@ -62,12 +62,13 @@ def twoTermPhrasalHelper(postings1, postings2):
     result = []
 
     while (marker1 < len(postings1)) and (marker2 < len(postings2)):
-        docID_1 = postings1[marker1][0]
-        docID_2 = postings2[marker2][0]
+        docID_1 = postings1[marker1].getDocID()
+        docID_2 = postings2[marker2].getDocID()
 
         if docID_1 == docID_2:
-            positionalList1 = postings1[marker1][5]
-            positionalList2 = postings2[marker2][5]
+            positionalList1 = postings1[marker1].getPositionalList()
+            positionalList2 = postings2[marker2].getPositionalList()
+            print(docID_1)
 
             if isPhraseInTwoPositionalList(positionalList1, positionalList2):
                 result.append(docID_1)
@@ -95,14 +96,14 @@ def threeTermPhrasalHelper(postings1, postings2, postings3):
     result = []
 
     while (marker1 < len(postings1)) and (marker2 < len(postings2)) and (marker3) < len(postings3):
-        docID_1 = postings1[marker1][0]
-        docID_2 = postings2[marker2][0]
-        docID_3 = postings3[marker3][0]
+        docID_1 = postings1[marker1].getDocID()
+        docID_2 = postings2[marker2].getDocID()
+        docID_3 = postings3[marker3].getDocID()
 
         if docID_1 == docID_2 and docID_2 == docID_3:
-            positionalList1 = postings1[marker1][5]
-            positionalList2 = postings2[marker2][5]
-            positionalList3 = postings3[marker3][5]
+            positionalList1 = postings1[marker1].getPositionalList()
+            positionalList2 = postings2[marker2].getPositionalList()
+            positionalList3 = postings3[marker3].getPositionalList()
 
             if (isPhraseInThreePositionalList(positionalList1, positionalList2, positionalList3)):
                 result.append(docID_1)

@@ -13,7 +13,6 @@ def retrievePostingsList(file, pointer):
     with open(file, 'rb') as f:
         f.seek(pointer)
         postingsList = pickle.load(f)
-    f.close()
 
     return postingsList
 
@@ -143,10 +142,6 @@ def isPhraseInTwoPositionalList(positionalList1, positionalList2):
         position_1 += positionalList1[marker1]
         position_2 += positionalList2[marker2]
 
-        # without postings compression
-        # position_1 = positionalList1[marker1]
-        # position_2 = positionalList2[marker2]
-
         if position_1 + 1 == position_2:
             return True
         
@@ -178,11 +173,6 @@ def isPhraseInThreePositionalList(positionalList1, positionalList2, positionalLi
         position_1 += positionalList1[marker1]
         position_2 += positionalList2[marker2]
         position_3 += positionalList3[marker3]
-
-        # without postings compression
-        # position_1 = positionalList1[marker1]
-        # position_2 = positionalList2[marker2]
-        # position_3 = positionalList3[marker3]
 
         if (position_1 + 1 == position_2) and (position_2 + 1 == position_3):
             return True

@@ -39,7 +39,6 @@ def build_index(in_dir, out_dict, out_postings):
         shutil.rmtree(workingDirectory) #delete the specified directory tree for re-indexing purposes
         os.mkdir(workingDirectory)
 
-    # sortedDocIDs = sorted([int(doc) for doc in os.listdir(in_dir)]) #sorted list of all docIDs in corpus
     fileID = 0
     stageOfMerge = 0
     count = 0
@@ -55,7 +54,6 @@ def build_index(in_dir, out_dict, out_postings):
         except OverflowError:
             maxInt = int(maxInt / 10)
 
-    # totalCount = 0 # testing code
     with open(input_directory, newline='', encoding='UTF-8') as f:
         reader = csv.reader(f)
 
@@ -75,10 +73,6 @@ def build_index(in_dir, out_dict, out_postings):
             docLengthsAndTopTerms[docID] = [len(tokenStream), topTerms]
             tokenStreamBatch.append((int(docID), tokenStream))
             count += 1
-            # totalCount += 1 # testing code
-
-            # if totalCount == 55: # testing code
-            #     break
 
             if count == limit: # no. of docs == limit
                 outputPostingsFile = workingDirectory + 'tempPostingFile' + str(fileID) + '_stage' + str(stageOfMerge) + '.txt'
@@ -115,6 +109,11 @@ def build_index(in_dir, out_dict, out_postings):
 
 
 def generateProcessedTokenStream(content):
+    """
+    Given a stream of words, tokenize, remove stopwords, case-fold and stem them. It outputs a list of processed terms in the form 
+    of [(term1, weight, docVectorLength), (term2, weight, docVectorLength), ...], and a list of 2 most heavily weighted terms associated
+    with the document.
+    """
     stemmer = nltk.stem.PorterStemmer()
     countOfTerms = {}
 
@@ -137,11 +136,13 @@ def generateProcessedTokenStream(content):
     weightOfTerms = {term : 1 + math.log10(value) for term, value in countOfTerms.items()} # no idf, deals with unique terms only
     rankedTermsList = sorted(weightOfTerms, key=weightOfTerms.get, reverse=True) # get a list containing the top 2 "heaviest" (most important) terms from the document
     top2Terms = []
+
     for term in rankedTermsList:
         if not term.isspace():  # non-empty word
             top2Terms.append(term)
             if len(top2Terms) >= 2:
                 break
+
     lengthOfDocVector = math.sqrt(sum([count**2 for count in weightOfTerms.values()]))
 
     output = [(term, weightOfTerms[term], lengthOfDocVector) for term in stemmedTerms] # all terms in a particular document, and its associated term weight, and length of vector
@@ -186,7 +187,6 @@ def convertToPostingNodes(out_postings, file, termDictionary):
                 ref.seek(pointer)
                 docIDsDict = pickle.load(ref) # loads a dictionary of docIDs
 
-                # postingsNodes = [Node(docID, docIDsDict[docID][0], docIDsDict[docID][1], docIDsDict[docID][2], docIDsDict[docID][3]) for docID in docIDsDict] # create Nodes
                 postingsNodes = [(docID, docIDsDict[docID][0], docIDsDict[docID][1], docIDsDict[docID][2], docIDsDict[docID][3]) for docID in docIDsDict] # create 5-tuples as "Nodes" to save space
                 insertSkipPointers(postingsNodes, len(postingsNodes))
                 newPointer = output.tell() # new pointer location

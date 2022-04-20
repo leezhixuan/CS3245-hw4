@@ -11,8 +11,8 @@ from postings_util import getDocID, hasSkipPointer, getSkipPointer
 from pseudo_RF import PRF
 from query_expansion import expandQuery
 
-WITH_PRF = False
-WITH_QE = True
+WITH_PRF = False # toggles pseudo relevance feedback. True = on, False = off
+WITH_QE = True # toggles query expansion. True = on, False = off
 
 def usage():
     print("usage: " + sys.argv[0] + " -d dictionary-file -p postings-file -q file-of-queries -o output-file-of-results")
@@ -42,13 +42,13 @@ def run_search(dict_file, postings_file, queries_file, results_file):
                 allResults.append("")
 
             if WITH_PRF:
-                print("with PRF")
-                top3Docs = allResults[-1].split(" ")[:3]
+                top3Docs = allResults[-1].split(" ")[:3] # take the top 3 docIDs from the most recently added result
                 del allResults[-1]
                 importantTerms = PRF(top3Docs, termDict, postings_file)
                 imptTermsStr = " ".join(importantTerms)
                 query = query.replace(" AND ", " ")
                 result = processQuery(query + " " + imptTermsStr, termDict, postings_file)
+
                 if result != None and len(result) > 0:
                     result = " ".join(map(str, list(result)))
                     allResults.append(result)
@@ -58,6 +58,9 @@ def run_search(dict_file, postings_file, queries_file, results_file):
         resultFile.write(outputResult)
 
 def isValidQuery(query):
+    """
+    Given a query string, returns True if it is valid. False otherwise.
+    """
     quotation_count = query.count('\"')
     and_count = query.count('AND')
 
@@ -75,53 +78,74 @@ def isValidQuery(query):
     return True
 
 def processQuery(query, dictFile, postings_file):
+    """
+    Given a query string, classifies it as one of the 3 types of queries:
+    Boolean, Free Text or Phrasal.
+    """
     if len(query) == 0 or not isValidQuery(query):
         return
     
     if "AND" in query:
         return booleanQuery(query, dictFile, postings_file)
+
     elif '\"' in query:
         return phrasalQuery(query, dictFile, postings_file)
+
     else:
         return freeTextQuery(query, dictFile, postings_file)
 
 
 def booleanQuery(query, dictFile, postings_file):
+    """
+    Given a Boolean query string, return 
+    """
     tokens = shuntingYard(query)
-    operants = list()
+    operands = list()
+
     while len(tokens) > 0:
         token = tokens.pop(0)
+
         if isinstance(token, str) and token != 'AND':
             op = Operand(term=token)
-            operants.append(op)
+            operands.append(op)
+
         elif token == 'AND':
-            op1 = operants.pop() 
-            op2 = operants.pop()
+            op1 = operands.pop() 
+            op2 = operands.pop()
             result = evalAND(op1, op2, dictFile, postings_file)
-            operants.append(result)
-    result = operants.pop().getResult()
+            operands.append(result)
+
+    result = operands.pop().getResult()
 
     # If the result length is too small, append result from free text query
     if result is None or len(result) < 50:
         query = query.replace('AND', '')
         query = query.replace('"', '')
         result = freeTextQuery(query, dictFile, postings_file)
+
     return result
 
 
 def freeTextQuery(query, dictFile, postings_file):
+    """
+    Given a free-text query, returns a list of docID as results according to cosine scores.
+    """
     if WITH_QE:
         query = expandQuery(query)
     return cosineScores(query, dictFile, postings_file)
 
 
 def phrasalQuery(query, dictFile, postings_file):
+    """
+    Given a phrasal query, returns a list of docIDs as result by relying on positional indexes.
+    """
     query = query.replace('"', '')
     result = processPharsalQuery(query, dictFile, postings_file)
 
     # If the result length is too small, append result from free text query
     if result is None or len(result) < 50:
         result = freeTextQuery(query, dictFile, postings_file)
+        
     return result
     
 
@@ -138,7 +162,9 @@ def shuntingYard(query):
         if term == "AND":
             while len(operatorStack) > 0:
                 output.append(operatorStack.pop())
+
             operatorStack.append(term)
+
         else:
             output.append(term)
 
@@ -163,18 +189,23 @@ def splitQuery(query):
         if (term == "\'\'" or term == "\"\"" or term == "``") and flag == 0:
             flag = 1
             continue
+
         elif (term == "\'\'" or term == "\"\"" or term == "``") and flag == 1:  # phrase concluded
             flag = 0
             result.append(phrase[:len(phrase)])  # remove extra space at end of phrase
             phrase = ""
             continue
+
         elif not term == "AND":  # don't case-fold operators
             if flag == 0:  # not within phrase
                 result.append(stemmer.stem(term.lower()))
+
             else:  # within phrase
                 phrase += stemmer.stem(term.lower()) + " "
+
         else:  # term is an Operator
             result.append(term)
+
     return result
 
 
@@ -189,7 +220,6 @@ def retrievePostingsList(file, pointer):
     with open(file, 'rb') as f:
         f.seek(pointer)
         postingsList = pickle.load(f)
-    f.close()
 
     return postingsList
 
@@ -248,18 +278,22 @@ def evalAND_terms(term1, term2, dictFile, postingsFile):
         if getDocID(pl1[0]) == getDocID(pl2[0]):  # Intersection, add to results
             result.add(getDocID(pl1[0]))
             pl1, pl2 = pl1[1:], pl2[1:]
+
         else:
             # Advance list with smaller docID
             if getDocID(pl1[0]) < getDocID(pl2[0]):
                 # Check if skip pointers exist, and use if feasible
                 if hasSkipPointer(pl1[0]) and getDocID(pl1[getSkipPointer(pl1[0])]) < getDocID(pl2[0]):
                     pl1 = pl1[getSkipPointer(pl1[0]):]
+
                 else:
                     pl1 = pl1[1:]
+
             else:
                 # Check if skip pointers exist, and use if feasible
                 if hasSkipPointer(pl2[0]) and getDocID(pl2[getSkipPointer(pl2[0])]) < getDocID(pl1[0]):
                     pl2 = pl2[getSkipPointer(pl2[0]):]
+
                 else:
                     pl2 = pl2[1:]
 
@@ -283,14 +317,17 @@ def evalAND_term_result(term, res, dictFile, postingsFile):
         if getDocID(pl[0]) == res[0]:  # Intersection, add to results
             result.add(res[0])
             pl, res = pl[1:], res[1:]
+
         else:
             # Advance list with smaller docID
             if getDocID(pl[0]) < res[0]:
                 # Check if skip pointers exist, and use if feasible
                 if hasSkipPointer(pl[0]) and getDocID(pl[getSkipPointer(pl[0])]) < res[0]:
                     pl = pl[getSkipPointer(pl[0]):]
+
                 else:
                     pl = pl[1:]
+
             else:
                 res = res[1:]
 

@@ -1,5 +1,5 @@
-This is the README file for A0223846B and A0199384J's submission
-Email(s): e0564887@u.nus.edu; e0406365@u.nus.edu
+This is the README file for A0223846B, A0199384J, A0174119E and A0194090E's submission
+Email(s): e0564887@u.nus.edu; e0406365@u.nus.edu; e0205114@u.nus.edu; e0373913@u.nus.edu
 
 
 == Python Version ==
@@ -47,6 +47,8 @@ The dictionary in the TermDictionary object will be in the form of:
 {term: [docFrequency, pointer], term2: [docFrequency, pointer], ..., ""d0cum3ntL3ngth4ndT0pT3rm5"": pointer}
 
 - Searching -
+Before the query is processed, we make sure that the query is valid by checking that it is not a mix of free text and boolean or free text and phrasal.
+The query is also checked to contain the correct number of quotations and AND operators.
 
 _Boolean Search_
 
@@ -79,6 +81,11 @@ Auxillary functions make use of set() to ensure no duplicates and traverse skip 
 Output is an Operand object that contains a result only. The result is a postings list containing all docIDs
 common to the 2 input Operands, sorted in ascending order.
 
+_Phrasal Search_
+For phrases with more than one word, we retrieve the posting lists of each word and find a set of common docIDs. 
+For each matched docID, we check the positional index of each word to make sure they appear consecutively in the document.
+If the query returns too few docIds, the result will be appended with free text query result.
+
 _Free Text Search_
 
 We preprocess terms in queries the same way we preprocess words in the corpus (only stemming and case-folding) so that we
@@ -87,10 +94,10 @@ will be able to search effectively. In CosineScores(), we also calculate score o
 For each query term, we add (normalisedQueryTermWeight * DocumentTermWeight) / docVectorLength to the score of every document in its postings list. 
 At the end, every document would have obtained a score. The higher the score, the more relevant that particular document is to the query.
 
-In order to rank and output the top 10 most relevant documents to the query, we utilise the heapq library as well as the Document class.
+In order to rank and output the top relevant documents to the query, we utilise the heapq library as well as the Document class.
 The Document class helps to facilitate ranking. As such, we convert every document-score pair into Document objects and pass the array
 of Document objects into heapq.extract10(). Then, we filter away any document with a score = 0 that somehow managed to make it into the top 10.
-Thereafter, we write the top 10 results (if any) into the output file, each on a new line.
+Thereafter, we write the top results into the output file, each on a new line.
 
 = Bonus =
 
@@ -163,7 +170,7 @@ postings.txt - saved output of list of Nodes objects, as well as a dictionary wh
 
 Please put a "x" (without the double quotes) into the bracket of the appropriate statement.
 
-[x] We, A0223846B and A0199384J, certify that we have followed the CS 3245 Information Retrieval class
+[x] We, A0223846B, A0199384J, A0174119E and A0194090E certify that we have followed the CS 3245 Information Retrieval class
 guidelines for homework assignments.  In particular, we expressly vow that we have followed the Facebook
 rule in discussing with others in doing the assignment and did not take notes (digital or printed) from
 the discussions.

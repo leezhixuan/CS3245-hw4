@@ -209,8 +209,7 @@ def insertSkipPointers(nodeArray, length):
         if (currentIndex % skipInterval == 0 and currentIndex + skipInterval <= endOfIndex):
             # makes sure that it is time for a skip pointer to be inserted and it is not inserted into
             # a node that will facilitate a skip past the last node.
-            
-            # node.addSkipPointer(skipInterval)
+
             skipPointer = (skipInterval,)
 
         nodeArray[currentIndex] = node[ :insertionIndex] + skipPointer + node[insertionIndex: ]

@@ -59,7 +59,7 @@ def isValidQuery(query):
 def processQuery(query, dictFile, postings_file):
     if len(query) == 0 or not isValidQuery(query):
         return
-
+    
     if "AND" in query:
         return booleanQuery(query, dictFile, postings_file)
     elif '\"' in query:
@@ -72,8 +72,8 @@ def booleanQuery(query, dictFile, postings_file):
     tokens = shuntingYard(query)
     operants = list()
     while len(tokens) > 0:
-        token = tokens.pop()
-        if isinstance(token, str):
+        token = tokens.pop(0)
+        if isinstance(token, str) and token != 'AND':
             op = Operand(term=token)
             operants.append(op)
         elif token == 'AND':
@@ -81,7 +81,16 @@ def booleanQuery(query, dictFile, postings_file):
             op2 = operants.pop()
             result = evalAND(op1, op2, dictFile, postings_file)
             operants.append(result)
-    return operants.pop().getResult()
+    result = operants.pop().getResult()
+
+    # If the result length is too small, append result from free text query
+    if result is None or len(result) < 50:
+        query = query.replace('AND', '')
+        freeTextResult = freeTextQuery(query, dictFile, postings_file)
+        for docId in freeTextResult:
+            if docId not in result:
+                result.append(docId)
+    return result
 
 
 def freeTextQuery(query, dictFile, postings_file):
@@ -89,8 +98,15 @@ def freeTextQuery(query, dictFile, postings_file):
 
 
 def phrasalQuery(query, dictFile, postings_file):
-    query = splitQuery(query)[0]
+    query = query.strip('"')
     result = processPharsalQuery(query, dictFile, postings_file)
+
+    # If the result length is too small, append result from free text query
+    if result is None or len(result) < 50:
+        freeTextResult = freeTextQuery(query, dictFile, postings_file)
+        for docId in freeTextResult:
+            if docId not in result:
+                result.append(docId)
     return result
     
 
@@ -134,7 +150,7 @@ def splitQuery(query):
             continue
         elif (term == "\'\'" or term == "\"\"" or term == "``") and flag == 1:  # phrase concluded
             flag = 0
-            result.append(phrase[:len(phrase)-2])  # remove extra space at end of phrase
+            result.append(phrase[:len(phrase)])  # remove extra space at end of phrase
             phrase = ""
             continue
         elif not term == "AND":  # don't case-fold operators
@@ -173,7 +189,10 @@ def evalAND(operand1, operand2, dictFile, postingsFile):
     # Both inputs are terms
     if operand1.isTerm() and operand2.isTerm():
         term1, term2 = operand1.getTerm(), operand2.getTerm()
-        result = evalAND_terms(term1, term2, dictFile, postingsFile)
+        if len(nltk.word_tokenize(term1)) > 1 or len(nltk.word_tokenize(term2)) > 1:
+            result = evalAND_results(processPharsalQuery(term1, dictFile, postingsFile), processPharsalQuery(term2, dictFile, postingsFile))
+        else:
+            result = evalAND_terms(term1, term2, dictFile, postingsFile)
 
     # Input 1 is term, Input 2 is result
     elif operand1.isTerm() and operand2.isResult():
@@ -210,7 +229,6 @@ def evalAND_terms(term1, term2, dictFile, postingsFile):
         return sorted(result)
 
     # else, pointer1 and pointer2 are not empty lists
-
     while pl1 != [] and pl2 != []:
         if getDocID(pl1[0]) == getDocID(pl2[0]):  # Intersection, add to results
             result.add(getDocID(pl1[0]))
@@ -246,7 +264,6 @@ def evalAND_term_result(term, res, dictFile, postingsFile):
         return sorted(result)
 
     # else, pl and res are not empty lists
-
     while pl != [] and res != []:
         if getDocID(pl[0]) == res[0]:  # Intersection, add to results
             result.add(res[0])

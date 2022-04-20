@@ -8,9 +8,21 @@ from Operand import Operand
 from phrasal import processPharsalQuery
 from free_text import cosineScores
 from postings_util import getDocID, hasSkipPointer, getSkipPointer
+from SPIMI import retrievePostingsDict
+
 
 def usage():
     print("usage: " + sys.argv[0] + " -d dictionary-file -p postings-file -q file-of-queries -o output-file-of-results")
+
+
+rf = 0
+
+
+def search(rf, dict_file, postings_file, queries_file, results_file):
+    if rf == 0:  # no rf
+        run_search(dict_file, postings_file, queries_file, results_file)
+    else:  # rf
+        run_search_rf(dict_file, postings_file, queries_file, results_file)
 
 
 def run_search(dict_file, postings_file, queries_file, results_file):
@@ -38,6 +50,96 @@ def run_search(dict_file, postings_file, queries_file, results_file):
 
         outputResult = "\n".join(allResults) # to output all result onto a new line.
         resultFile.write(outputResult)
+
+
+def run_search_rf(dict_file, postings_file, queries_file, results_file):
+    """
+    using the given dictionary file and postings file,
+    perform searching on the given queries file and output the results to a file
+    """
+    print('running search on the queries...')
+
+    termDict = TermDictionary(dict_file)
+    termDict.load()  # load term information into dictFile from dict_file
+
+    k = 3  # if we are using top 3 relevant docs for relevance feedback
+
+    with open(queries_file, 'r') as queryFile, open(results_file, 'w') as resultFile:
+        initialResults = []
+
+        for query in queryFile:
+            if query.strip():
+                result = processQuery(query, termDict, postings_file)  # how do we get result to contain only top k docs?
+                if result != None and len(result) > 0:
+                    result = " ".join(map(str, list(result)))
+                    initialResults.append(result)
+            else:
+                initialResults.append("")
+
+        resultsRF = initialResults[:k]  # take only the first k results for rf
+        newQuery = expandRF(query, resultsRF)
+        allResults = []
+
+        result_rf = processQuery(newQuery, termDict, postings_file)  # run again
+        if not result_rf and len(result) > 0:
+            result_rf = " ".join(map(str, list(result)))
+            allResults.append(result_rf)
+        else:
+            allResults.append("")
+
+        outputResult = "\n".join(allResults)  # to output all result onto a new line.
+        resultFile.write(outputResult)
+
+
+def expandRF(query: str, docIDs: list):
+    """
+    Given a query and a list of docIDs considered relevant,
+    return a modified query expanded to include important terms from relevant docs.
+    """
+
+    stemmer = nltk.stem.porter.PorterStemmer()
+
+    queryTerms = nltk.tokenize.word_tokenize(query)
+
+    termDict = TermDictionary("dictionary.txt")
+    termDict.load()
+    postingsFile = "postings-file.txt"
+
+    result = []
+    toAdd = PRF(docIDs, termDict, postingsFile)
+
+    num_queryTerms = len(queryTerms)
+
+    for term in toAdd:
+        words = queryTerms
+
+        if term not in words:
+            words.insert(num_queryTerms, queryTerms)
+            num_queryTerms += 1
+
+        stemmed = [stemmer.stem(word.lower()) for word in words]
+        result.extend(stemmed)
+
+    return ' '.join(result)
+
+
+def PRF(docIDs: list, termDict: TermDictionary, postingsFile: str):
+    """
+    Given a list of docIDs and a TermDictionary object (with .load() already called),
+    return a list of important terms that are associated to those docIDs.
+    """
+
+    pointer = termDict.getPointerToDocLengthsAndTopTerms()
+    docLengthsAndTopTerms = retrievePostingsDict(postingsFile, pointer)
+
+    result = []
+
+    for docID in docIDs:
+        topTerms = docLengthsAndTopTerms[docID][1]  # this is a list of 2 terms
+        result.extend(topTerms)
+
+    return result
+
 
 def isValidQuery(query):
     quotation_count = query.count('\"')
@@ -313,4 +415,4 @@ if dictionary_file == None or postings_file == None or file_of_queries == None o
     usage()
     sys.exit(2)
 
-run_search(dictionary_file, postings_file, file_of_queries, file_of_output)
+search(rf, dictionary_file, postings_file, file_of_queries, file_of_output)

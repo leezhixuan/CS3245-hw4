@@ -3,7 +3,7 @@ from nltk.corpus import wordnet
 
 def expandQuery(query):
     """
-    Given a query string, we return an expanded query string containing 3 synonyms of each term in the original query string.
+    Given a query string, we return an expanded query string containing 2 synonyms of each term in the original query string.
     """
     stemmer = nltk.stem.porter.PorterStemmer()
 
@@ -14,7 +14,7 @@ def expandQuery(query):
 
     index = 0
     for synsetsList in synsetsFromQueryTerms:
-        synonymList = getTop3Synonyms(synsetsList)
+        synonymList = getTop2Synonyms(synsetsList)
         words = [synonym[0].lemma_names()[0] for synonym in synonymList]
         queryTerm = queryTerms[index]
 
@@ -94,10 +94,13 @@ def removeDuplicates(synsets):
     return result
 
 
-def getTop3Synonyms(synsets):
+def getTop2Synonyms(synsets):
     """
-    Given synsets, we return the top 3 closest synonyms (which may include the word itself).
+    Given synsets, we return the top 2 closest synonyms (which may include the word itself).
     """
+    if len(synsets) == 0:
+        return []
+        
     datumSynonym = synsets[0] # synsets are ordered by frequency, thus index 0 = most frequent, they're most frequently used for some reason
 
     synonymScorePairs = []
@@ -108,4 +111,4 @@ def getTop3Synonyms(synsets):
 
     synonymScorePairs.sort(key=lambda tup: tup[1]) # sort based on similarity score, in place.
 
-    return synonymScorePairs[:3]
+    return synonymScorePairs[:2]

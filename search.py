@@ -9,9 +9,10 @@ from phrasal import processPharsalQuery
 from free_text import cosineScores
 from postings_util import getDocID, hasSkipPointer, getSkipPointer
 from pseudo_RF import PRF
+from query_expansion import expandQuery
 
-WITH_PRF = True
-WITH_QE = False
+WITH_PRF = False
+WITH_QE = True
 
 def usage():
     print("usage: " + sys.argv[0] + " -d dictionary-file -p postings-file -q file-of-queries -o output-file-of-results")
@@ -82,6 +83,8 @@ def processQuery(query, dictFile, postings_file):
     elif '\"' in query:
         return phrasalQuery(query, dictFile, postings_file)
     else:
+        if WITH_QE:
+            query = expandQuery(query)
         return freeTextQuery(query, dictFile, postings_file)
 
 

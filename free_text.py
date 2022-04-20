@@ -27,10 +27,12 @@ def cosineScores(query, dictionary, postingsFile):
     Implementation of CosineScore(q) from the textbook.
     """
     stemmer = nltk.stem.porter.PorterStemmer()
+    queryTerms = nltk.word_tokenize(query)
+    queryTokens = [stemmer.stem(token.lower()) for token in queryTerms]
+
     totalNumberOfDocs = len(retrievePostingsList(postingsFile, dictionary.getPointerToDocLengthsAndTopTerms()))
     result = dict.fromkeys(retrievePostingsList(postingsFile, dictionary.getPointerToDocLengthsAndTopTerms()).keys(), 0) # in the form of {docID : 1, docID2 : 0.2, ...}
 
-    queryTokens = [stemmer.stem(token.lower()) for token in query.split()]
     qTokenFrequency = Counter(queryTokens) # qTokenFrequency will be in the form of {"the": 2, "and" : 1} if the query is "the and the".
     qToken_tfidfWeights = {term : computeTFIDF(term, frequency, dictionary, totalNumberOfDocs) for term, frequency in qTokenFrequency.items()}
     queryLength = math.sqrt(sum([math.pow(weight, 2) for weight in qToken_tfidfWeights.values()]))
@@ -104,4 +106,5 @@ def extractPositiveDocuments(documentObjects):
     """
     Takes in a list of Document objects and extracts all documents with positive score.
     """
-    return filter(lambda document : (document.getWeight() > 0), documentObjects)
+    temp = heapq.nlargest(20000, documentObjects) # a list of 10 highest scoring document
+    return filter(lambda document : (document.getWeight() > 0), temp)

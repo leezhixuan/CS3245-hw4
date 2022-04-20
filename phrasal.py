@@ -22,27 +22,29 @@ def processPharsalQuery(query, termDict, postingsFile):
     Takes in the query (phrasal), the TermDictionary object and the name of the postings file (.txt).
     Returns a list of docIDs.
     """
+    stemmer = nltk.stem.porter.PorterStemmer()
     queryTerms = nltk.word_tokenize(query)
+    queryTokens = [stemmer.stem(token.lower()) for token in queryTerms]
 
-    if len(queryTerms) == 1:
-        pointer = termDict.getTermPointer(queryTerms[0])
+    if len(queryTokens) == 1:
+        pointer = termDict.getTermPointer(queryTokens[0])
         postings = retrievePostingsList(postingsFile, pointer)
 
         return [getDocID(node) for node in postings]
 
-    elif len(queryTerms) == 2:
-        pointer1 = termDict.getTermPointer(queryTerms[0])
-        pointer2 = termDict.getTermPointer(queryTerms[1])
+    elif len(queryTokens) == 2:
+        pointer1 = termDict.getTermPointer(queryTokens[0])
+        pointer2 = termDict.getTermPointer(queryTokens[1])
         postings1 = retrievePostingsList(postingsFile, pointer1)
         postings2 = retrievePostingsList(postingsFile, pointer2)
 
         result = twoTermPhrasalHelper(postings1, postings2)
         return result
 
-    elif len(queryTerms) == 3:
-        pointer1 = termDict.getTermPointer(queryTerms[0])
-        pointer2 = termDict.getTermPointer(queryTerms[1])
-        pointer3 = termDict.getTermPointer(queryTerms[2])
+    elif len(queryTokens) == 3:
+        pointer1 = termDict.getTermPointer(queryTokens[0])
+        pointer2 = termDict.getTermPointer(queryTokens[1])
+        pointer3 = termDict.getTermPointer(queryTokens[2])
         postings1 = retrievePostingsList(postingsFile, pointer1)
         postings2 = retrievePostingsList(postingsFile, pointer2)
         postings3 = retrievePostingsList(postingsFile, pointer3)

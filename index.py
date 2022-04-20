@@ -135,7 +135,13 @@ def generateProcessedTokenStream(content):
             countOfTerms[stemmedWord] = 1
 
     weightOfTerms = {term : 1 + math.log10(value) for term, value in countOfTerms.items()} # no idf, deals with unique terms only
-    top2Terms = sorted(weightOfTerms, key=weightOfTerms.get, reverse=True)[:2] # get a list containing the top 2 "heaviest" (most important) terms from the document.
+    rankedTermsList = sorted(weightOfTerms, key=weightOfTerms.get, reverse=True) # get a list containing the top 2 "heaviest" (most important) terms from the document
+    top2Terms = []
+    for term in rankedTermsList:
+        if not term.isspace():  # non-empty word
+            top2Terms.append(term)
+            if len(top2Terms) >= 2:
+                break
     lengthOfDocVector = math.sqrt(sum([count**2 for count in weightOfTerms.values()]))
 
     output = [(term, weightOfTerms[term], lengthOfDocVector) for term in stemmedTerms] # all terms in a particular document, and its associated term weight, and length of vector

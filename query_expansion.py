@@ -22,7 +22,7 @@ def expandQuery(query):
             words.insert(0, queryTerm)
 
         stemmed = [stemmer.stem(word.lower()) for word in words]
-        result.extend(stemmed)
+        result.extend(set(stemmed))
 
         index += 1
 

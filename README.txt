@@ -48,6 +48,36 @@ The dictionary in the TermDictionary object will be in the form of:
 
 - Searching -
 
+_Boolean Search_
+
+We preprocess terms in Boolean queries the same way we process words in the corpus. For each
+Boolean query, we rely on the Shunting-yard algorithm to turn the query into its post-fix form
+(Reverse Polish Notation). We then evaluate this post-fix form with the help of the Operand
+class as well as the Stack data structure, and append each query result onto a new line in the results file.
+In the case of invalid queries, we output an empty string onto a new line in the results file.
+
+The general idea of the AND function is as such: The postings of both search terms are
+retrieved. With pointers at both starts of the postings, we add the posting to the result if both
+posting lists contain said posting. We then advance the list with the smaller docID (both lists
+should already be sorted by docID). Another check will be conducted to determine if the taking the skip pointer 
+is feasible (i.e. will skip to a posting that is smaller than that of the other posting list), should there be one 
+available. Once both lists are fully iterated, the result is output.
+
+There are 3 auxillary functions for Boolean Search: (purely conjunctive for this homework)
+1) evalAND_terms - where both operands are query terms, and posting lists belonging to both will
+be retrieved and compared so that we are able to find the common ones between the 2.
+
+2) evalAND_term_result - where one Operand is a search term, and the other being a list of docIDs.
+The posting list for the term will be retrieved before it is compared with the other to find the ones
+that they share.
+
+3) evalAND_results - where both search terms exists in result form i.e. both are posting lists.
+Here, we can simply find the intersection between the 2 postings lists.
+
+Auxillary functions make use of set() to ensure no duplicates and traverse skip pointers accordingly.
+
+Output is an Operand object that contains a result only. The result is a postings list containing all docIDs
+common to the 2 input Operands, sorted in ascending order.
 
 _Free Text Search_
 
@@ -107,6 +137,8 @@ free_text.py - contains functions to facilitate free text queries using cosine s
 phrasal.py - contains functions to allow for phrasal queries through matching positional indexes within a document.
 
 pseudoRF.py - contains functions to enable pseudo relevance feedback.
+
+postings_util - contains helper functions to operate with 6-tuples (postings)
 
 query_expansion.py - contains functions to make query expansions possible via the addition of (closest) synonyms to the current query string.
 

@@ -83,7 +83,8 @@ def booleanQuery(query, dictFile, postings_file):
             operants.append(result)
     result = operants.pop().getResult()
 
-    if result is None or len(result) < 10:
+    # If the result length is too small, append result from free text query
+    if result is None or len(result) < 50:
         query = query.replace('AND', '')
         freeTextResult = freeTextQuery(query, dictFile, postings_file)
         for docId in freeTextResult:
@@ -99,7 +100,9 @@ def freeTextQuery(query, dictFile, postings_file):
 def phrasalQuery(query, dictFile, postings_file):
     query = query.strip('"')
     result = processPharsalQuery(query, dictFile, postings_file)
-    if result is None or len(result) < 10:
+
+    # If the result length is too small, append result from free text query
+    if result is None or len(result) < 50:
         freeTextResult = freeTextQuery(query, dictFile, postings_file)
         for docId in freeTextResult:
             if docId not in result:

@@ -8,6 +8,10 @@ from Operand import Operand
 from phrasal import processPharsalQuery
 from free_text import cosineScores
 from postings_util import getDocID, hasSkipPointer, getSkipPointer
+from pseudo_RF import PRF
+
+WITH_PRF = True
+WITH_QE = False
 
 def usage():
     print("usage: " + sys.argv[0] + " -d dictionary-file -p postings-file -q file-of-queries -o output-file-of-results")
@@ -35,6 +39,19 @@ def run_search(dict_file, postings_file, queries_file, results_file):
 
             else:
                 allResults.append("")
+
+            if WITH_PRF:
+                print("with PRF")
+                top3Docs = allResults[-1].split(" ")[:3]
+                del allResults[-1]
+                importantTerms = PRF(top3Docs, termDict, postings_file)
+                imptTermsStr = " ".join(importantTerms)
+                query = query.replace(" AND ", " ")
+                result = processQuery(query + " " + imptTermsStr, termDict, postings_file)
+                if result != None and len(result) > 0:
+                    result = " ".join(map(str, list(result)))
+                    allResults.append(result)
+                
 
         outputResult = "\n".join(allResults) # to output all result onto a new line.
         resultFile.write(outputResult)

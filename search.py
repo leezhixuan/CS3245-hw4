@@ -83,8 +83,6 @@ def processQuery(query, dictFile, postings_file):
     elif '\"' in query:
         return phrasalQuery(query, dictFile, postings_file)
     else:
-        if WITH_QE:
-            query = expandQuery(query)
         return freeTextQuery(query, dictFile, postings_file)
 
 
@@ -106,27 +104,24 @@ def booleanQuery(query, dictFile, postings_file):
     # If the result length is too small, append result from free text query
     if result is None or len(result) < 50:
         query = query.replace('AND', '')
-        freeTextResult = freeTextQuery(query, dictFile, postings_file)
-        for docId in freeTextResult:
-            if docId not in result:
-                result.append(docId)
+        query = query.replace('"', '')
+        result = freeTextQuery(query, dictFile, postings_file)
     return result
 
 
 def freeTextQuery(query, dictFile, postings_file):
+    if WITH_QE:
+        query = expandQuery(query)
     return cosineScores(query, dictFile, postings_file)
 
 
 def phrasalQuery(query, dictFile, postings_file):
-    query = query.strip('"')
+    query = query.replace('"', '')
     result = processPharsalQuery(query, dictFile, postings_file)
 
     # If the result length is too small, append result from free text query
     if result is None or len(result) < 50:
-        freeTextResult = freeTextQuery(query, dictFile, postings_file)
-        for docId in freeTextResult:
-            if docId not in result:
-                result.append(docId)
+        result = freeTextQuery(query, dictFile, postings_file)
     return result
     
 

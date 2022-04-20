@@ -15,7 +15,7 @@ def expandQuery(query):
     index = 0
     for synsetsList in synsetsFromQueryTerms:
         synonymList = getTop3Synonyms(synsetsList)
-        words = [synonym.lemma_names()[0] for synonym in synonymList]
+        words = [synonym[0].lemma_names()[0] for synonym in synonymList]
         queryTerm = queryTerms[index]
 
         if queryTerm not in words:

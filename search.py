@@ -15,7 +15,7 @@ def usage():
     print("usage: " + sys.argv[0] + " -d dictionary-file -p postings-file -q file-of-queries -o output-file-of-results")
 
 
-rf = 0
+rf = 1
 
 
 def search(rf, dict_file, postings_file, queries_file, results_file):
@@ -76,16 +76,19 @@ def run_search_rf(dict_file, postings_file, queries_file, results_file):
             else:
                 initialResults.append("")
 
-        resultsRF = initialResults[:k]  # take only the first k results for rf
+        resultsRF = list(map(str, initialResults[0].split(" ")[:k]))  # take only the first k results for rf
         newQuery = expandRF(query, resultsRF)
         allResults = []
 
-        result_rf = processQuery(newQuery, termDict, postings_file)  # run again
-        if not result_rf and len(result) > 0:
-            result_rf = " ".join(map(str, list(result)))
-            allResults.append(result_rf)
-        else:
-            allResults.append("")
+        for query in newQuery:
+            if query.strip():
+                result = processQuery(query, termDict, postings_file)
+                if result != None and len(result) > 0:
+                    result = " ".join(map(str, list(result)))
+                    allResults.append(result)
+
+            else:
+                allResults.append("")
 
         outputResult = "\n".join(allResults)  # to output all result onto a new line.
         resultFile.write(outputResult)
@@ -110,15 +113,14 @@ def expandRF(query: str, docIDs: list):
 
     num_queryTerms = len(queryTerms)
 
+    words = queryTerms
     for term in toAdd:
-        words = queryTerms
-
         if term not in words:
-            words.insert(num_queryTerms, queryTerms)
+            words.append(term)
             num_queryTerms += 1
 
-        stemmed = [stemmer.stem(word.lower()) for word in words]
-        result.extend(stemmed)
+    stemmed = [stemmer.stem(word.lower()) for word in words]
+    result.extend(stemmed)
 
     return ' '.join(result)
 

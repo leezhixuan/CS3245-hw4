@@ -26,7 +26,7 @@ The list of 2 most important terms associated to that particular document, along
 docLengthsAndTopTerms, where each entry is in the form of docID : [docLength, [importantTerm1, importantTerm2]].
 
 During SPIMIInvert(), terms and their docID, termFrequency, termWeight and docVectorLength are being consolidated into temporary
-dictionary and postings file. It is also here that positional indexes asoociated to each term are created.
+dictionary and postings file. It is also here that positional indexes asoociated to each term (from a particular document) are created.
 
 After all the documents in the corpus have been processed. We make a call to binaryMerge() and it is in charge of 
 merging all the existing "dictionary" and "postings" files that have been created into a single "dictionary" and 
@@ -82,9 +82,13 @@ Output is an Operand object that contains a result only. The result is a posting
 common to the 2 input Operands, sorted in ascending order.
 
 _Phrasal Search_
+
+For one-worded phrases, we simply retrieved the postings list associated with that phrase.
+
 For phrases with more than one word, we retrieve the posting lists of each word and find a set of common docIDs. 
 For each matched docID, we check the positional index of each word to make sure they appear consecutively in the document.
-If the query returns too few docIds, the result will be appended with free text query result.
+If the query returns too little docIds, the result will be appended with free text query (by breaking up phrases into 
+individual terms to form free texts) result.
 
 _Free Text Search_
 
@@ -99,7 +103,11 @@ The Document class helps to facilitate ranking. As such, we convert every docume
 of Document objects into heapq.extract10(). Then, we filter away any document with a score = 0 that somehow managed to make it into the top 10.
 Thereafter, we write the top results into the output file, each on a new line.
 
-= Bonus =
+
+= Bonus (Query Refinement) =
+
+Details of experimential results and analysis regarding the query refinement techniques that we have implemented can be found in BONUS.docx.
+Below is a gist of the ideas for our query refinement methods.
 
 - Query Expansion -
 
@@ -120,14 +128,23 @@ The top 3 synonyms belonging to each query term is then added to the query strin
 - Pseudo relevance feedback -
 
 After a round of querying using the original query string that was given by the user, we obtain a list of docID as results. We take treat the 
-top 3 highest ranking docIDs to be relevant documents.
+top k highest ranking docIDs to be relevant documents.
 
-As it is computationally expensive to calculate the centroid of these relevant, we make use of the important terms associated to each docID
-that we have stored during indexing. For each of the top 3 most relevant docIDs, we retrieve their important terms and add them into the query 
-string to form a new query string. We then do another round of querying with this new query string.
+Using the Rocchio formula approach for relevance feedback requires our indexing to store space-intensive document-vectors (rather than term-vectors, 
+which are currently used) so that their centroid can be calculated.As it is computationally expensive to calculate the centroid of these relevant, 
+we make use of the important terms associated to each docID that we have stored during indexing. For each of the top k most relevant docIDs, we retrieve 
+their important terms and add them into the query string to form a new query string. We then do another round of querying with this new query string.
 
 This is somewhat similar to query expansion. The main difference is that the "expansion" here comes from the first round of query results rather
-than from the synonyms (from wordnet) added. The words added may or may not be synonyms of the query terms in the original query string.
+than from the synonyms (from WordNet) added. The words added may or may not be synonyms of the query terms in the original query string.
+
+
+== Work Allocation ==
+
+A0223846B - Indexing, Phrasal Search, Query Expansion, Pseudo Relevance Feedback, README.txt and BONUS.docx
+A0194090E - Phrasal Search, Free Text Search, Query Expansion, README.txt
+A0174119E - Pseudo Relevance Feedback, BONUS.docx
+A0199384J - Boolean Search, Pseudo Relevance Feedback
 
 
 == Files included with this submission ==
@@ -164,6 +181,8 @@ frequency as well as their pointer. It also contains a special key, "d0cum3ntL3n
 a dictionary whose key-value pair is docID : docLength.
 
 postings.txt - saved output of list of Nodes objects, as well as a dictionary whose key-pair value is docID : docLength.
+
+BONUS.docx - details the experimential results and analysis of the query refinement techniques that we have implemented for HW4
 
 
 == Statement of individual work ==
